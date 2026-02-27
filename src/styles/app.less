@@ -1,0 +1,251 @@
+@mobile-device: ~"(max-width: 770px)";
+@mid-sized-device: ~"(max-width: 1000px)";
+@mobile-nav: ~"(max-width: 992px)";
+/* Page Constants */
+/* Color Themes */
+@form-color: rgba(0,41,95,1);
+.form-color(@prop,@val){ @{prop}: rgba(0,41,95,@val) !important; }
+
+@import "_fonts.less";
+
+body, html { 
+    margin: 0px !important;
+    color: rgba(0,0,0,1);
+    height: 100%; 
+}
+
+*:focus { outline: none;}
+
+.app-body { min-height: 100vh; }
+
+/* Main Nav Menu */
+.navbar {
+    z-index: 100; width: calc(100% - 16px); display: flex; flex-direction: row;
+    position: relative; padding: 4px 8px;
+
+    .nav-section {
+        &.end { margin-left: auto; }
+        &+.nav-section { margin-left: 8px; }
+    }
+}
+
+.app-link { text-decoration: none; color: initial; }
+
+/* No Match & Loading */
+.no-match-page {
+    position: relative;
+    .loading-container {
+        position: fixed; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+
+        .no-page-txt {
+            display: flex; flex-direction: column;
+            justify-content: center; text-align: center;
+        }
+    }
+}
+
+/* Form Modal */
+.site-form-modal {
+    .rodal-dialog {
+        border-radius: 8px; padding: 1.5rem;
+    }
+
+    .form-container { 
+        position: relative; height: 100%; overflow: hidden;
+
+        .loading-dock {
+            padding: 32px 0; display: flex; flex-direction: row;
+            justify-content: center;
+        }
+
+        .form-content {
+            display: flex; flex-direction: column;
+            font-family: "Jost", sans-serif; height: 100%;
+
+            h1, p { margin: 0; }
+
+            h1 { color: @form-color; text-align: center; margin: 0 0 1rem; }
+            p{ font-size: 1.2rem; color: @form-color; }
+
+            .form-fields-container {
+                display: flex; flex-direction: row; flex-wrap: wrap; 
+                justify-content: space-between; overflow: auto;
+                margin-top: 1rem; height: calc(100% - 1rem);
+
+                .edit-field-container {
+                    margin: 8px 0; padding: 8px; 
+                    display: flex; flex-direction: column;
+
+                    .field-title { 
+                        font-size: 1.1rem; margin-bottom: 8px; 
+                        text-transform: capitalize; color: @form-color;
+                    }
+
+                    .field-container {
+                        display: flex;
+
+                        .field-icon {
+                            font-size: 1.2rem; display: none; color: @form-color;
+                        }
+
+                        input, select {
+                            border: none; background-color: rgba(255,255,255,0);
+                            flex: 1;
+                        }
+
+                        .admin-quill  { 
+                            background: rgba(255,255,255,1); 
+                            border-radius: 8px; flex: 1;
+                            border: 1px solid @admin-color1;
+
+                            .ql-toolbar { border-top-left-radius: 8px; border-top-right-radius: 8px;}
+                            .ql-container  { 
+                                border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+                                height: 126px; overflow: auto;
+                            }
+                        }
+
+                        &.base, &.select {
+                            flex-direction: row; padding: 8px;
+                            border: 1px solid @admin-color1;
+                            border-radius: 16px;
+
+                            .field-icon { display: block; margin-right: 8px; }
+                        }
+                    }
+
+                    &.sz-1 { width: calc(10% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-2 { width: calc(20% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-3 { width: calc(30% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-4 { width: calc(40% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-5 { width: calc(50% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-6 { width: calc(60% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-7 { width: calc(70% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-8 { width: calc(80% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-9 { width: calc(90% - 16px); @media @mobile-nav { width: calc(100% - 16px); }}
+                    &.sz-10 { width: calc(100% - 16px); }
+
+                    &.error {
+                        .field-title { color: @admin-color2; }
+                        .field-container, .admin-quill { border-color: @admin-color2; }
+                    }
+
+                    .required-container { 
+                        display: flex; flex-direction: row; flex-wrap: wrap; 
+                        justify-content: flex-start; overflow: auto; 
+                        flex-direction: row; margin-top: 36px;
+
+                        .toggle-container {
+                            padding: 4px; width: 30px;
+                            display: flex; flex-direction: row;
+                            justify-content: flex-start; border-radius: 12px;
+                            background-color: rgba(175,175,175,0.5);
+                            margin-right: 8px; cursor: pointer;
+                            transition: 0.2s all ease-in-out;
+
+                            .toggle-btn { 
+                                width: 15px; height: 15px; border-radius: 50%;
+                                background-color: rgba(175,175,175,1);
+                                transition: 0.2s all ease-in-out;
+                            }
+                        }
+
+                        span { font-weight: bold; opacity: 0.5; }
+
+                        &.active {
+                            .toggle-container { 
+                                justify-content: flex-end; background-color: rgba(55,255,55,0.3);
+                                .toggle-btn { background-color: rgba(55,155,55, 1); }
+                            }
+
+                            span { opacity: 1; }
+                        }
+                    }
+                }
+            }
+
+            .site-btn-container {
+                .form-color(background, 0.1);
+                padding: 8px; border-radius: 5px; margin-top: 8px;
+            }
+
+            .completed-message {
+                flex: 1; display:flex; flex-direction: column;
+                justify-content: center; padding: 1rem 0;
+
+                p { 
+                    font-size: 2rem; color: @form-color; 
+                    margin: 0 0 1rem; text-align: center;
+                }
+
+                .message-icon { 
+                    width: 5rem; height: 5rem;
+                    .form-color(background, 0.4);
+                    border-radius: 50%; margin: 0 auto;
+                    display: flex; flex-direction: column;
+                    justify-content: center; text-align: center;
+
+                    .material-symbols-outlined { font-size: 3rem; color: @form-color; }
+                }
+
+                .reset-link {
+                    display: flex; flex-direction: row;
+                    color: @form-color; font-size: 1.2rem;
+                    cursor: pointer; justify-content: center;
+                    margin: 2rem 0 0;
+                    transition: 0.2s all ease-in-out;
+
+                    span { 
+                        display: flex; flex-direction: column;
+                        justify-content: center;
+                        
+                        &+span { margin-left: 4px; }
+                    }
+
+                    &:hover { color: darken(@form-color, 20%); }
+                }
+            }
+        }
+    }
+}
+
+/* Event Calendar */
+.event-calendar-container {
+    position: relative;
+
+    .cal-loading {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 100;
+    }
+
+    .fc-daygrid-event { cursor: pointer; }
+
+    &.form-events {
+        .fc-toolbar-title {
+            position: relative;
+
+            &:after {
+                content: '(Form Events)'; position: absolute;
+                bottom: calc(50% - 1rem); right: -85%;
+                font-family: "Jost", sans-serif;
+                font-size: 1.2rem; color: @form-color;
+            }
+        }
+    }
+}
+
+/* Rotation */
+@keyframes rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Additional Page styles */
+@import "admin.less";
+@import "_app.less";
