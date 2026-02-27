@@ -862,11 +862,11 @@ module.exports = {
                 const toEmail = formObj?.alertEmail ?? process.env.DEFAULT_ADMIN_EMAIL;
                 const sentTime = util.formatDate(new Date());
 
-                const mail_status = await mail.sendEmail(toEmail, `ROJHAY`, { 
+                const mail_status = await mail.sendEmail(toEmail, `Lee Lee`, { 
                     title: 'A New Website Response Has Been Submitted',
                     lines: [
                         `A new response to our [${id}] form has been submitted at: ${sentTime}`,
-                        'Please Access the ROJHAY Admin Tool to see more information',
+                        'Please Access the Lee Lee Admin Tool to see more information',
                         '','Thanks,',
                         'Miles (Your Friendly Neighborhood Web Tool)'
                     ]

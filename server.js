@@ -62,5 +62,5 @@ app.get('*', (req, res) => {
 
 // Catch all other routes and return the index file
 const server = app.listen({ port: process.env.PORT || 8080 }, ()=> {
-    log.info(`Rojhay-BP is open on port ${process.env.PORT || 8080}`);
+    log.info(`LeeLee-BP is open on port ${process.env.PORT || 8080}`);
 });

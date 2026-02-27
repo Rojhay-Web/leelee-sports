@@ -37,6 +37,7 @@ function SiteRoutes(){
     const router = createBrowserRouter(
         createRoutesFromElements(
             <>
+                {/* Core Routes */ }
                 <Route path="/" element={<Layout />}>
                     <Route index element={<Home />} />
                     {paths.map((rt, i) => 
@@ -44,6 +45,7 @@ function SiteRoutes(){
                     )}
                 </Route>
 
+                {/* Admin Routes */ }
                 <Route path="/allaccess" element={(checkUserRole('ADMIN', user?.roles) ? <AdminLayout /> : <Layout />)}>
                     <Route index element={(checkUserRole('ADMIN', user?.roles) ? <AdminHome /> : <NoMatch />)} />
                     {activeComponents?.map((art: AdminPathType, i:number) =>
