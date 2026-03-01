@@ -443,7 +443,7 @@ function CustomItemEditor({ show, selItem, selIdx, fields, closeAction, saveItem
                 case "list":
                     return <PillListEditor list={localItem[field.title] ?? []} updateList={(val) => quillHandleChange(field.title, val)} />;
                 case "images":
-                    return <ImageEditor selected={localItem[field.title]} maxSelect={1} tag={localItem?._id} updateList={(val) => quillHandleChange(field.title, val)}/>;
+                    return <ImageEditor selected={localItem[field.title]} maxSelect={6} tag={localItem?._id} updateList={(val) => quillHandleChange(field.title, val)}/>;
                 case "number":
                     return <input name={`${field?.title}`} value={localItem[field.title] ?? null} type="number" onChange={defaultHandleChange} />;
                 default:
