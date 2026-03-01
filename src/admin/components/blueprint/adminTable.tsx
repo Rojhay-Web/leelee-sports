@@ -43,7 +43,7 @@ const scopesList = [
     { title: "Site Editor", key:"site_content" }
 ];
 
-const customListTypes = ["title", "description", "list", "images", "number"];
+const customListTypes = ["title", "description", "list", "cover", "images", "number"];
 
 function ScopeCell({ scopeMap, adminCheck, updateCellKey }: ScopeCellType){
     const isActive = (key:string) => {

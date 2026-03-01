@@ -306,8 +306,7 @@ export function ImageEditor({ maxSelect=1, tag, updateList }: ImageEditorType){
             if(tab === "upload new images") {
                 searchImages({ variables: { page: 1, pageSize: ids?.length }});
                 closeModal(photoset);                
-            }
-            else {
+            } else {
                 retrievePhotosetImages({ variables: { id:tag, page: 1, pageSize: 20 }});
                 setManualAdd(true);
             }
@@ -384,7 +383,8 @@ export function ImageEditor({ maxSelect=1, tag, updateList }: ImageEditorType){
 
             <SelectedPhotosCtrl maxSelect={maxSelect} selected={localSelect} uploadFlag={false} selecting={false} setCompleted={(d)=>{}} toggleImage={toggleImage} />
             
-            <GalleryCtrlModal visible={openModal} tabs={tabs} tag={tag} maxSelect={(maxSelect - localSelect?.length)} secondActionTitle={"Add Image(s)"}
+            <GalleryCtrlModal visible={openModal} tabs={tabs} tag={tag} maxSelect={(maxSelect - localSelect?.length)} 
+                secondActionTitle={"Add Image(s)"} selectedImages={localSelect}
                 secondAction={modalSecondAction} secondActionLoading={search_loading} hasSecondAction={true} 
                 secondActionStatus={(search_data?.photos?.results?.length > 0 || manualAdd)} closeAction={closeModal} />
         </div>
@@ -442,8 +442,10 @@ function CustomItemEditor({ show, selItem, selIdx, fields, closeAction, saveItem
                             />;
                 case "list":
                     return <PillListEditor list={localItem[field.title] ?? []} updateList={(val) => quillHandleChange(field.title, val)} />;
+                case "cover":
+                    return <ImageEditor selected={localItem[field.title]} maxSelect={1} tag={localItem?._id} updateList={(val) => quillHandleChange(field.title, val)}/>;
                 case "images":
-                    return <ImageEditor selected={localItem[field.title]} maxSelect={6} tag={localItem?._id} updateList={(val) => quillHandleChange(field.title, val)}/>;
+                    return <ImageEditor selected={localItem[field.title]} maxSelect={10} tag={localItem?._id} updateList={(val) => quillHandleChange(field.title, val)}/>;
                 case "number":
                     return <input name={`${field?.title}`} value={localItem[field.title] ?? null} type="number" onChange={defaultHandleChange} />;
                 default:
@@ -510,10 +512,14 @@ function CustomItemPreview({ field, item }:{field: any, item: any}){
         try {
             switch(field?.type){
                 case "title":
-                    return <div className="txt-list title">{(item[field?.title] ? parse(item[field?.title]) : '')}</div>;
+                    const plainTextTitle = item[field?.title] ? item[field?.title].replace(/<[^>]*>/g, '') : null
+                    
+                    return <div className="txt-list title">{(plainTextTitle?.length > 0 ? parse(item[field?.title]) : `... No ${field?.title}`)}</div>;
                 case "description":
                 case "number":
-                    return <div className="txt-list">{(item[field?.title] ? parse(item[field?.title]) : '')}</div>;
+                    const plainText = item[field?.title] ? item[field?.title].replace(/<[^>]*>/g, '') : null
+                    
+                    return <div className="txt-list">{(plainText?.length > 0 ? parse(item[field?.title]) : `... No ${field?.title}`)}</div>;
                 case "list":
                     return <div className="preview-div p-list">
                         {item[field?.title]?.map((li: any, i:number) =>
@@ -522,13 +528,22 @@ function CustomItemPreview({ field, item }:{field: any, item: any}){
                             </div>
                         )}
                     </div>;
+                case "cover":
+                    let initCoverPhoto = data?.photosetImages?.results?.length > 0 ? data?.photosetImages?.results[0]?._id : null;
+
+                    return <div className="preview-div p-img">
+                        {initCoverPhoto ?
+                            <img src={`${API_URL}/kaleidoscope/${initCoverPhoto}`} alt={`custom list item preview`} /> :
+                            <span className="empty-img-txt">... No Cover Image</span>
+                        }
+                    </div>;
                 case "images":
                     let initPhoto = data?.photosetImages?.results?.length > 0 ? data?.photosetImages?.results[0]?._id : null;
 
                     return <div className="preview-div p-img">
                         {initPhoto ?
                             <img src={`${API_URL}/kaleidoscope/${initPhoto}`} alt={`custom list item preview`} /> :
-                            <></>
+                            <span className="empty-img-txt">... No Cover Image(s)</span>
                         }
                     </div>;
                 default:
@@ -541,7 +556,7 @@ function CustomItemPreview({ field, item }:{field: any, item: any}){
     }
 
     useEffect(()=>{
-        if(field?.type === "images" && item?._id){
+        if(field?.type in { "cover":1, "images":1 } && item?._id){
             retrievePhotosetImages({ variables: { id:item?._id, page: 1, pageSize: 1 }});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -576,8 +591,9 @@ function CustomListEditor({ list, fields, updateList }:{ list:any[], fields:any[
 
     const addNewItem = () => {
         try {
-            updateList([{ id: uuidv4() }, ...list]);
-            toggleEditWindow({},0);
+            const newItem = { _id: uuidv4() };
+            updateList([newItem, ...list]);
+            toggleEditWindow(newItem, 0);
         }
         catch(ex){
             log.error(`Adding New Item: ${ex}`);
@@ -772,7 +788,7 @@ export default function SiteEditor(){
 
     // GQL Queries
     const authHeader = {context: { headers: { "Authorization": user?._id }}};
-    const [retrievePages,{ loading: site_pages_loading, data: site_pages_data }] = useLazyQuery(GET_SITE_PAGES_QUERY, {fetchPolicy: 'no-cache', ...authHeader, onError: handleGQLError});
+    const [retrievePages,{ loading: site_pages_loading, error, data: site_pages_data }] = useLazyQuery(GET_SITE_PAGES_QUERY, {fetchPolicy: 'no-cache', ...authHeader, onError: handleGQLError});
     const [retrievePage,{ loading: site_page_loading, data: site_page_data, refetch: site_page_refetch }] = useLazyQuery(GET_IND_SITE_PAGE_QUERY, {fetchPolicy: 'no-cache', ...authHeader, onError: handleGQLError});
 
     // Mutations

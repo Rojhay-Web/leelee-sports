@@ -167,10 +167,10 @@ export function UserRoleCell({ roles }: { roles?: string[]}) {
     )
 }
 
-export function UserRegDateCell({ registration_date }: { registration_date?: Date }) {
+export function UserRegDateCell({ registration_date, default_title='No Registration Date' }: { registration_date?: Date, default_title?: string }) {
     return (
         <div className="usrmgt_cell reg_dt_cell">
-            {registration_date ? formatDate(registration_date, 'MM/dd/yyyy HH:mm:ss') : 'No Registration Date'}
+            {registration_date ? formatDate(registration_date, 'MM/dd/yyyy HH:mm:ss') : default_title}
         </div> 
     );
 }
@@ -394,6 +394,62 @@ export function UserSearchTool({ setSelUser }: { setSelUser: Dispatch<SetStateAc
             }
         </div>
     );
+}
+
+export function UserRoleCountCell({ roles }: { roles?: string[]}) {
+    const additionalBtnRef = useRef<HTMLDivElement>(null);
+    const additionalListRef = useRef<HTMLDivElement>(null);
+
+    const [toggleAdd, setToggleAdd] = useState(false);
+
+    const toggleAdditional = (status: boolean) => {
+        try {
+            setToggleAdd(status);
+        } catch(ex){
+            log.error(`Setting Additional Toggle: ${ex}`);
+        }
+    }
+
+    useEffect(() => {
+        document.addEventListener("click", handleClickOutside, false);
+        return () => {
+            document.removeEventListener("click", handleClickOutside, false);
+        };
+    }, []);
+
+    const handleClickOutside = (event: any) => {
+        if (
+            (additionalBtnRef.current && !additionalBtnRef.current.contains(event.target)) &&
+            (additionalListRef.current && !additionalListRef.current.contains(event.target))
+        ) {
+            setToggleAdd(false);
+        }
+    };
+
+    return (
+        <div className="usrmgt_cell roles">
+            {roles && roles?.length > 0 &&
+                <div className='additional-roles-container'>
+                    <div className={`additional-roles ${toggleAdd ? 'add-active' : ''}`} onClick={()=> toggleAdditional(true)} ref={additionalBtnRef}>{roles?.length}</div>
+
+                    {toggleAdd &&
+                        <div className='additional-roles-content' ref={additionalListRef}>
+                            {roles?.map((role,i) =>
+                                <div className={`role-container mini`} key={i}
+                                    style={{
+                                        backgroundColor: `rgba(170,170,170, 0.3)`,
+                                        color: `rgba(170,170,170, 1)`
+                                    }}
+                                >
+                                    {role}
+                                </div>
+                            )}
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    )
 }
 
 /* User Management Modal */
@@ -924,9 +980,9 @@ export default function UserManagementTable({ tableConfig, searchQuery, selUser,
                             ))}
                         </thead>
                         <tbody>
-                            {table.getRowModel().rows.map((row) => {
+                            {table.getRowModel().rows.map((row, idx) => {
                                 return (
-                                    <tr key={row.id}>
+                                    <tr key={row.id} style={{ zIndex: table.getRowModel().rows.length - idx }}>
                                         {row.getVisibleCells().map((cell) => {
                                             return (
                                                 <td key={cell.id}

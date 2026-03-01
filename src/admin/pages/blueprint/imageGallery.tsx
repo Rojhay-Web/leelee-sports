@@ -1,6 +1,7 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { CSSProperties, useContext, useEffect, useRef, useState } from "react";
 import { gql, useLazyQuery, useMutation } from '@apollo/client';
 import { toast } from "react-toastify";
+import { Column, ColumnDef, flexRender, getCoreRowModel, SortingState, useReactTable } from "@tanstack/react-table";
 import * as _ from 'lodash';
 import { spiral } from 'ldrs';
 
@@ -12,6 +13,7 @@ import { Photosets, Photo, UserContextType, FilePhoto } from "../../../datatypes
 import { API_URL, handleGQLError } from "../../../utils";
 import { UploadImageComponent } from "../../components/blueprint/uploadImageBtn";
 import { log } from "../../../utils/log";
+import { UserRegDateCell, UserRoleCountCell } from "../../components/blueprint/userManagementTable";
 
 const GALLERY_PAGE_SIZE = 16;
 
@@ -34,6 +36,7 @@ SEARCH_PHOTOS_QUERY = gql`
             results {
                 _id
                 title
+                photosets
                 created
             }
         }
@@ -45,6 +48,7 @@ GET_PHOTOSET_PHOTOS_QUERY = gql`
             results {
                 _id
                 title
+                photosets
                 created
             }
         }
@@ -80,6 +84,43 @@ function ImageGallery(){
     const [tabs, setTabs] = useState<string[]>([]); 
 
     const [uploading, setUploading] = useState(false);
+
+    // Table Controls
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [columns] = useState<ColumnDef<Photo>[]>([
+        { 
+            id:"_id",
+            header: 'Image', accessorKey: 'photo', 
+            cell: ({ row }) => { 
+                return <div className="usrmgt_cell">
+                    <div className="img-container">
+                        <img src={`${API_URL}/kaleidoscope/${row.original._id}`} alt="admin gallery item" />
+                    </div>
+                </div>
+            }
+        },
+        { 
+            id:"title",
+            header: 'Image Title', accessorKey: 'title', 
+            cell: ({ row }) => { 
+                return <div className="usrmgt_cell">{row.original.title}</div>
+            }
+        },
+        { 
+            id:"photosets",
+            header: 'Photosets', accessorKey: 'photosets', size: 200,
+            cell: ({ row }) => { 
+                return <UserRoleCountCell roles={row?.original?.photosets} />
+            }
+        },
+        { 
+            id:"created",
+            header: 'Created Date', accessorKey: 'created', 
+            cell: ({ row }) => { 
+                return <UserRegDateCell registration_date={row.original.created}/>
+            }
+        },
+    ]);
 
     const pillScrollRef = useRef<HTMLDivElement>(null);
     const pageRender = useRef(false);
@@ -297,6 +338,32 @@ function ImageGallery(){
         }
     }
 
+    // Photo Table
+    const table = useReactTable({
+        data: displayPhotos ?? [],
+        columns,
+        initialState: {},
+        state: { sorting },
+        getCoreRowModel: getCoreRowModel(),
+        debugTable: false, debugHeaders: false, debugColumns: false,
+        columnResizeMode: "onChange",
+        onSortingChange: setSorting,
+    });
+
+    const getCommonPinningStyles = (column: Column<Photo>): CSSProperties => {
+        const isPinned = column.getIsPinned();
+        const isLastPinned = isPinned === "left" && column.getIsLastColumn("left");
+        const width = column.getSize();
+
+        return {
+            width: width <= 150 ? 'initial' : column.getSize(),
+            position: isPinned ? "sticky" : "relative",
+            left: isPinned === "left" ? `${column.getStart("left")}px` : undefined,
+            zIndex: isPinned ? 1 : 0,
+            boxShadow: isLastPinned ? "rgba(170, 170, 170, 0.3) 4px 0px 4px -2px" : undefined
+        };
+    }
+
     /* Data Functions */
     useEffect(()=>{ 
         getMapperTabs(); 
@@ -442,20 +509,71 @@ function ImageGallery(){
                     <l-spiral size="150" speed="0.9" color="rgba(0,41,95,1)"/>
                 </div> : 
                 <>
-                    <div className="admin-gallery-container">
+                    <div className="admin-gallery-table-container">
                         {!photos_loading &&
                             <>
-                                <div className="photo-container add" onClick={addImageToggle}>
-                                    <span className="material-symbols-outlined">cloud_upload</span>
-                                    <span className="photo-text">Add/Upload New Image</span>
+                                <div className="photo-btn-container">
+                                    <div className="photo-btn" onClick={addImageToggle}>
+                                        <span className="material-symbols-outlined">cloud_upload</span>
+                                        <span className="photo-text">Add/Upload New Image</span>
+                                    </div>
                                 </div>
 
-                                {displayPhotos.map((photo,i)=>
-                                    <div className="photo-container" key={i} onClick={()=> { deletePhoto(photo._id); }}>
-                                        <img src={`${API_URL}/kaleidoscope/${photo._id}`} alt="admin gallery item" />
-                                    </div>
-                                )}  
-                            </>    
+                                <div className="user-management-table-container">
+                                    <table className="user-management-table" style={{ width: table.getTotalSize() }}>
+                                        <thead>
+                                            {table.getHeaderGroups().map((headerGroup) => (
+                                                <tr key={headerGroup.id}>
+                                                    {headerGroup.headers.map((header) => {
+                                                        return(
+                                                            <th key={header.id} colSpan={header.colSpan}
+                                                                style={{ ...getCommonPinningStyles(header.column) }}
+                                                            >
+                                                                <div className={`header-container ${header.column.getCanSort() ? 'sortable' : ''}`} onClick={header.column.getToggleSortingHandler()}>
+                                                                    {flexRender(
+                                                                        header.column.columnDef.header,
+                                                                        header.getContext(),
+                                                                    )}
+                                                                </div>
+                                                            </th>
+                                                        );
+                                                    })}
+                
+                                                    {/* Empty Header For Actions*/}
+                                                    <th className='empty-header'/>
+                                                </tr>
+                                            ))}
+                                        </thead>
+                                        <tbody>
+                                            {table.getRowModel().rows.map((row, idx) => {
+                                                return (
+                                                    <tr key={row.id} style={{ zIndex: table.getRowModel().rows.length - idx }}>
+                                                        {row.getVisibleCells().map((cell) => {
+                                                            return (
+                                                                <td key={cell.id}
+                                                                    style={{ ...getCommonPinningStyles(cell.column) }}
+                                                                >
+                                                                    {flexRender(
+                                                                        cell.column.columnDef.cell,
+                                                                        cell.getContext(),
+                                                                    )}
+                                                                </td>
+                                                            )
+                                                        })}
+
+                                                        {/* Column For Actions*/}
+                                                        <td>
+                                                            <button className='update-user-btn' onClick={()=> { deletePhoto(row.original._id); }}>
+                                                                <span className="material-symbols-outlined">delete</span>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
                         }
                     </div>
 

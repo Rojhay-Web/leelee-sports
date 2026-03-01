@@ -40,11 +40,13 @@ type GalleryCtrlModalType = {
 
     secondActionLoading: boolean, hasSecondAction?:boolean,
     secondActionTitle?:string, secondActionStatus?:boolean, 
+    selectedImages?: FilePhoto[],
     secondAction: (tab: string, ids: string[], photoset: FilePhoto[]) => void
 };
 
 type GallerySectionType = {
     maxSelect: number, tag: string,
+    selectedImages?: FilePhoto[],
     checkClose: (photoset: FilePhoto[]) => void,
 
     secondActionLoading: boolean, hasSecondAction?:boolean,
@@ -55,10 +57,12 @@ type GallerySectionType = {
 type PanelActionPageType = {
     panelPage: string, step1Completion: boolean,
     hasSecondAction: boolean, step2Completion: boolean, selected: FilePhoto[],
-    secondActionTitle?: string, checkCloseAction: () => void
+    secondActionTitle?: string, 
+    checkCloseAction: () => void,
+    setDisplayPanelPage: React.Dispatch<React.SetStateAction<boolean>>
 };
 
-function PanelActionPage({ panelPage, selected, step1Completion, step2Completion, hasSecondAction, secondActionTitle, checkCloseAction }:PanelActionPageType) {
+function PanelActionPage({ panelPage, selected, step1Completion, step2Completion, hasSecondAction, secondActionTitle, checkCloseAction, setDisplayPanelPage }:PanelActionPageType) {
     useEffect(()=> { quantum.register(); },[]);
 
     return(
@@ -102,7 +106,10 @@ function PanelActionPage({ panelPage, selected, step1Completion, step2Completion
                     <>
                         <span className='panel-content-text title'>Success</span>
                         <span className='panel-content-text'>Feel free to navigate back by closing the modal</span>
-                        <div className='action-link cancel' onClick={checkCloseAction}>Close</div>
+                        <div className='action-link-container'>
+                            <div className='action-link more' onClick={() => { setDisplayPanelPage(false); }}>Upload More Images</div>
+                            <div className='action-link cancel' onClick={checkCloseAction}>Close</div>
+                        </div>
                     </> : <></>
                 }
             </div>
@@ -110,7 +117,7 @@ function PanelActionPage({ panelPage, selected, step1Completion, step2Completion
     );
 }
 
-function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionStatus, secondActionLoading, secondAction, secondActionTitle="Choose Image(s)", checkClose }: GallerySectionType){
+function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionStatus, secondActionLoading, selectedImages, secondAction, secondActionTitle="Choose Image(s)", checkClose }: GallerySectionType){
     const [selected, setSelected] = useState<FilePhoto[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [selecting, setSelecting] = useState(false);
@@ -118,6 +125,7 @@ function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionSt
 
     // Upload
     const [uploading, setUploading] = useState(false);
+    const [displayPanelPage, setDisplayPanelPage] = useState(false);
 
     const { user } = useContext(userContext.UserContext) as UserContextType;
 
@@ -168,8 +176,11 @@ function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionSt
     const checkCloseAction = () => {
         let tmpSel = _.cloneDeep(selected);
 
-        setSelecting(false); setCurrentPage(1); 
-        setSelected([]); setPanelPage("");
+        setSelecting(false); 
+        setDisplayPanelPage(false);
+        setCurrentPage(1); 
+        setSelected([]); 
+        setPanelPage("");
         selectedDict.current = {};
 
         checkClose(tmpSel);
@@ -228,11 +239,11 @@ function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionSt
 
     /* Selecting */
     useEffect(()=>{
-        if(!loading){
+        if(!loading && !displayPanelPage){
             retrieveAllImages({ variables: { page: currentPage, pageSize: MAX_GALLERY_PAGE_SZ }});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[currentPage]);
+    },[currentPage, displayPanelPage]);
 
     useEffect(()=> {
         if(!secondActionLoading && secondActionStatus && panelPage === "step_2"){
@@ -248,6 +259,24 @@ function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionSt
         // eslint-disable-next-line react-hooks/exhaustive-deps
     },[add_photos_data]);
 
+    useEffect(() =>{
+        if(uploading || selecting){
+            setDisplayPanelPage(true);
+        }
+    },[uploading, selecting]);
+
+    useEffect(()=>{
+        if(selectedImages){
+            let selDict: {[key:string]:FilePhoto} = {};
+            
+            selectedImages?.forEach((img) => {
+                selDict[img._id] = img;
+            });
+
+            selectedDict.current = selDict;
+        }
+    },[selectedImages]);
+
     useEffect(()=> { spiral.register(); },[]);
 
     return(
@@ -259,11 +288,11 @@ function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionSt
                 uploading={uploading} setUploading={setUploading}
             />
 
-            {!selecting && !uploading ?
+            {!selecting && !uploading && !displayPanelPage ?
                 <>
                     <div className='btn-container top'>                        
                         <div className={`action-btn save ${selected?.length <= 0 ? 'disable':''}`} onClick={addImageToSet}>{secondActionTitle}</div>
-                        <div className='action-btn default' onClick={()=> { fileUpload?.current?.click(); }}>Upload Image</div>
+                        <div className='action-btn default' onClick={()=> { fileUpload?.current?.click(); }}>Upload Image(s)</div>
                     </div>
 
                     {/* Display Selected Gallery */}
@@ -295,6 +324,7 @@ function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionSt
                 <PanelActionPage panelPage={panelPage} step1Completion={selecting} selected={selected}
                     hasSecondAction={hasSecondAction} step2Completion={secondActionStatus ? true : false}
                     secondActionTitle={secondActionTitle} checkCloseAction={checkCloseAction}
+                    setDisplayPanelPage={setDisplayPanelPage}
                 />
             }
         </div>
@@ -303,7 +333,7 @@ function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionSt
 
 function GalleryCtrlModal({ 
     visible, tabs, maxSelect, tag, closeAction, 
-    secondActionLoading, hasSecondAction,
+    secondActionLoading, hasSecondAction, selectedImages,
     secondActionTitle, secondActionStatus, secondAction
 }: GalleryCtrlModalType){
     const [selectedTab, setSelectedTab] = useState("");
@@ -341,7 +371,7 @@ function GalleryCtrlModal({
             width={calcModalSize().width} height={calcModalSize().height}>
             <div className='mapper-content'>
                 <GallerySelect maxSelect={maxSelect} tag={tag}
-                    secondActionLoading={secondActionLoading} 
+                    secondActionLoading={secondActionLoading} selectedImages={selectedImages}
                     hasSecondAction={hasSecondAction} secondActionStatus={secondActionStatus}
                     secondAction={(ids: string[], photoset: FilePhoto[]) => {secondAction(selectedTab, ids, photoset); }} 
                     secondActionTitle={secondActionTitle} checkClose={closeAction} />
