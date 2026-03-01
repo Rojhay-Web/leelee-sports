@@ -2,6 +2,8 @@
     position: relative;
 
     .landing-section {
+        position: relative;
+
         .home-cover-container {
             position: relative; overflow: hidden;
             z-index: 1;
@@ -146,6 +148,94 @@
             @media @full-mobile-device { 
                 width: calc(100% - 4rem);;
                 flex-direction: column; 
+            }
+        }
+    }
+
+    .our-sports-section {
+        display: flex; flex-direction: column; padding: 3rem 0;
+
+        .sports-list-container {
+            padding: 0 2rem;
+            mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 12.5%, rgb(0, 0, 0) 87.5%, rgba(0, 0, 0, 0) 100%);
+            .sports-list-inner-container{
+                display: flex; flex-direction: row; 
+                overflow: hidden; white-space: nowrap;
+                padding-left: 100px;
+
+                .sport-item {
+                    display: flex; flex-direction: row; 
+                    padding: 4px 8px; cursor: pointer;
+                    color: #000;
+
+                    .sport-logo {
+                        font-size: 1.5rem; margin-right: 0.5rem;
+                    }
+
+                    .sport-title {
+                        font-size: 1.2rem;
+                        font-family: 'Barlow Condensed', sans-serif;
+                    }
+
+                    &+.sport-item { margin-left: 15%; }
+
+                    &.selected { color: @color2; cursor: default; }
+                }
+            }
+        }
+
+        .sports-info-container {
+            display: flex; flex-direction: column;
+            padding: 30px @page-padding;
+
+            .image-container {
+                position: relative; height: 400px; margin: 75px 0;
+
+                .league-image {
+                    position: absolute; border-radius: 8px; overflow: hidden;
+                    background-color: rgba(75,75,75,1);
+                    -moz-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+                    -webkit-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+                    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+
+                    img { width: 100%; min-height: 100%; object-fit: cover;}
+
+                    &:nth-child(1) { 
+                        top: 50%; left: 50%; 
+                        transform: translate(-50%, -50%); 
+                        width: 60%; height: 100%; 
+                    }
+
+                    &:nth-child(2) { 
+                        top: 50%; left: 25%; 
+                        transform: translate(-50%, -50%); 
+                        width: 250px; height: 200px; 
+                    }
+
+                    &:nth-child(3) {
+                        top: 0; left: 40%; 
+                        transform: translate(-50%, -50%); 
+                        width: 150px; height: 100px; 
+                    }
+
+                    &:nth-child(4) { 
+                        top: 50px; right: 80px; 
+                        transform: translate(-50%, -50%); 
+                        width: 200px; height: 150px; 
+                    }
+
+                    &:nth-child(5) {
+                        top: 60%; right: 40px; 
+                        transform: translate(-50%, -50%); 
+                        width: 150px; height: 100px; 
+                    }
+
+                    &:nth-child(6) { 
+                        top: 100%; left: 60%; 
+                        transform: translate(-50%, -50%); 
+                        width: 300px; height: 150px; 
+                    }
+                }
             }
         }
     }
