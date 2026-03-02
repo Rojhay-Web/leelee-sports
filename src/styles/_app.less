@@ -205,9 +205,19 @@ body, html {
     @media @mobile-device { display: block; }
 }
 
-/* components */
+/* Components */
+.site-btn-container {
+    display: flex; flex-direction: row;
+    justify-content: center;
+    padding: 0 @page-padding;
+
+    &.end { 
+        justify-content: flex-end;
+    }
+}
+
 .site-btn {
-    padding: 8px 24px; border-radius: 50px; 
+    padding: 8px 24px; border-radius: 24px; 
     color: #fff; background: @base;
     text-decoration: none; text-align: center;
     display: flex; flex-direction: row;
@@ -233,13 +243,78 @@ body, html {
         .icon { transform: translateX(-4px); }
     }
 
+    // Size
+    &.mini {
+        padding: 4px 16px; border-radius: 16px;
+
+        span { 
+            font-size: 1.3rem; 
+            &.icon { font-size: 1.5rem; }
+        }
+    }
+
+    // Functions
     &.disabled { cursor: default; }
+
+    // Themes
     &.c2 { .color2(background,0.7); &:hover { .color2(background,1); } } 
     &.c3 { .color3(background,0.7); &:hover { .color3(background,1); } }
     &.c4 { .color4(background,0.7); &:hover { .color4(background,1); } } 
     &.c5 { .color5(background,0.7); &:hover { .color5(background,1); } }
+
+    &.youtube { background: rgba(255,0,0,0.9); &:hover { background: rgba(40, 40, 40,1); }}
+
+    &.glass { 
+        background: rgba(32,32,32,0.7); 
+        backdrop-filter: blur(2px); 
+        -webkit-backdrop-filter: blur(2px);
+        &:hover { background: rgba(32,32,32,1); } 
+    }
+
+    &.clean {
+        background: transparent; 
+        color: rgba(40,40,40,1);
+
+        &:hover { 
+            background: transparent;
+            color: rgba(255,0,0,1);
+        }
+    }
 }
 
+.lrgTitle {
+    position: relative; color: #fff;
+    font-size: 5rem; font-weight: 100; margin: 6rem 0 8px;
+    font-family: 'Bebas Neue', cursive;
+
+    &:after {
+        position: absolute;
+        top: -8.5rem; left: 20px;
+        color: rgba(200,200,200,0.2);
+        font-weight: 400; content: attr(data-text);
+        font-size: 17rem; white-space: nowrap;
+    }
+
+    &.sub { 
+        &:after { font-size: 4.5rem; top: -2.5rem;}
+    }
+
+    &.ctr { 
+        text-align: center;
+        &:after { left: 50%; transform: translateX(-50%); }
+    }
+
+    &.cw { color: #fff; &:after { color: rgba(255,255,255,0.2);}}
+    &.c0 { color: #000; &:after { color: rgba(0,0,0,0.1);}}
+    &.c1 { color:@color1; &:after { .color1(color, 0.1);}}
+    &.c2 { color:@color2; &:after { .color2(color, 0.1);}}
+    &.c3 { color:@color3; &:after { .color3(color, 0.1);}}
+
+    @media @mobile-device { 
+        &:after { font-size: 5rem; top: -2.5rem; }
+        &.ctr { &:after { width: 100%; left: 0; transform: none;}}
+    }
+}
 
 /* Icons */
 .close-nav { 

@@ -146,3 +146,10 @@ export type SiteEvent = {
 
     forms?: Form[];
 }
+
+export type SiteVideo = {
+    id?: string;
+    title?: string;
+    description?: string;
+    publishedAt?: Date;
+}

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { gql, useQuery, useLazyQuery } from '@apollo/client';
 import { ripples } from 'ldrs';
+import Slider from "react-slick";
 
 import { API_URL, parseRichText } from "../../utils";
+import { formatDateV2, VIDEOS_URL } from "../../utils/_customUtils";
 
 // Images: Cover
 import homeCover1 from "../../assets/landing/cover1.jpg";
@@ -28,6 +30,11 @@ import leagueImg4 from "../../assets/home/image4.jpg";
 import leagueImg5 from "../../assets/home/image5.jpg";
 import leagueImg6 from "../../assets/home/image6.jpg";
 
+// Image: Logos
+import youtube_icon from '../../assets/logo/youtube.png';
+
+// Types
+import { SiteVideo } from "../../datatypes";
 type HomeCoverType = {
     title: string;
     backImage: string;
@@ -49,10 +56,29 @@ const homeCover: HomeCoverType[] = [
     { title: 'Consistency', backImage: homeCover4, frontImage: homeCoverFront4 },
     { title: 'Teamwork', backImage: homeCover5, frontImage: homeCoverFront5 }
 ];
+const slider_settings = {
+    infinite: true,
+    slidesToShow: 3.5,
+    slidesToScroll: 1,
+    autoplay: true,
+    speed: 20000,
+    autoplaySpeed: 0,
+    cssEase: "linear",
+    responsive: [
+        {
+            breakpoint: 770,
+            settings: {
+                slidesToShow: 1.5,
+                infinite: false,
+                autoplay: false,
+            }
+        }
+    ]
+};
 
 const PAGE_KEY = 'home';
 const GET_PAGE_QUERY = gql`
-query GetSitePage($key: String!) { 
+query GetHomePage($key: String!, $page:Int, $pageSize:Int) { 
     sitePage(key: $key) {
         pageKeys {
             _id
@@ -60,6 +86,15 @@ query GetSitePage($key: String!) {
             type
             metaData
             value
+        }
+    }
+    videos(page:$page, pageSize:$pageSize){
+        totalResults
+        results {
+            id
+            title
+            description
+            publishedAt
         }
     }
 }`,
@@ -83,9 +118,9 @@ function Home(){
 
     const welcomeContainerRef = useRef<HTMLDivElement>(null);
     
-    const { loading, data } = useQuery(GET_PAGE_QUERY, {variables: { key: PAGE_KEY }, fetchPolicy: 'cache-and-network' });
+    const { loading, data } = useQuery(GET_PAGE_QUERY, {variables: { key: PAGE_KEY, page: 1, pageSize: 10 }, fetchPolicy: 'cache-and-network' });
     const [retrieveSportPhotos, { loading: sp_loading,  data: sp_data }] = useLazyQuery(GET_PHOTOSET_IMAGES_QUERY, {fetchPolicy: 'cache-and-network' });
-
+    
     const handleClickOutside = (event: any) => {
         if ((welcomeContainerRef.current && !welcomeContainerRef.current.contains(event.target))) {
             setCoverVideo(false);
@@ -219,8 +254,42 @@ function Home(){
             </section>
 
             <section className="our-videos">
-                
+                <h1 className="lrgTitle ctr c0" data-text="Videos">League Videos</h1>
+
+                <div className="site-btn-container end">
+                    <a href={VIDEOS_URL} target='_blank' className="site-btn clean mini">
+                        <span className="icon material-symbols-outlined">youtube_activity</span>
+                        <span className="title">More Videos</span>
+                    </a>
+                </div>
+
+                <div className="video-container">
+                    {loading ?
+                        <>Loading...</> :
+                        <>
+                            {!(data?.videos?.results?.length > 0) ?
+                                <h2>More Videos TO Come</h2> :
+                                <Slider {...slider_settings}>
+                                    {data.videos.results.map((item: SiteVideo, i:number) =>
+                                        <a className='video-item-container' key={i} href={`https://www.youtube.com/watch?v=${item.id}`} target="_blank" rel="noreferrer">
+                                            <div className='img-cover'>
+                                                <img className='icon' src={youtube_icon} alt="Youtube link icon" />
+                                                <img className='thumbnail' src={`https://img.youtube.com/vi/${item.id}/mqdefault.jpg`} alt="YouTube Video Thumbnail"></img>
+                                            </div>
+                                            <div className='slider-content'>
+                                                <span className='title'>{item.title}</span>
+                                                <span className='date'>{formatDateV2(item.publishedAt, 'MMM d, yyyy')}</span>
+                                            </div>
+                                        </a>
+                                    )}
+                                </Slider>
+                            }
+                        </>
+                    }
+                </div>                
             </section>
+
+            <section className="our-partners"></section>
         </div>
     );
 }

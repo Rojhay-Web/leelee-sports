@@ -156,12 +156,13 @@
         display: flex; flex-direction: column; padding: 3rem 0;
 
         .sports-list-container {
-            padding: 0 2rem;
+            padding: 0; overflow: hidden;
+            width: 90%; margin: auto;
             mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 12.5%, rgb(0, 0, 0) 87.5%, rgba(0, 0, 0, 0) 100%);
             .sports-list-inner-container{
                 display: flex; flex-direction: row; 
                 overflow: hidden; white-space: nowrap;
-                padding-left: 100px;
+                padding-left: 6%;
 
                 .sport-item {
                     display: flex; flex-direction: row; 
@@ -313,6 +314,74 @@
             .sport-btn-container {
                 display: flex; flex-direction: row;
                 justify-content: center; padding: 0 @page-padding 2rem;
+            }
+        }
+    }
+
+    .our-videos {
+        display: flex; flex-direction: column; padding: 3rem 0;
+
+        h1 {
+            text-align: center; margin: 5rem 0; 
+            padding: 0 @page-padding;
+        }
+
+        .site-btn-container { margin-bottom: 1rem; }
+
+        .video-container {
+            padding: 0; overflow: hidden;
+            width: 90%; margin: auto;
+            mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgb(0, 0, 0) 12.5%, rgb(0, 0, 0) 87.5%, rgba(0, 0, 0, 0) 100%);
+
+            .video-item-container{
+                display: flex; flex-direction: column;
+                padding: 16px; overflow: hidden; cursor: pointer;
+                text-decoration: none; color: initial; position: relative;
+
+                transition: 0.4s all ease-in-out;
+
+                .img-cover {
+                    height: 200px; border-radius: 8px;
+                    width: calc(100% - 32px); overflow: hidden;
+                    background-color: rgba(50,50,50,1);
+                    position: relative;
+
+                    -moz-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+                    -webkit-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+                    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+
+                    .thumbnail { 
+                        width: 100%; min-height: 100%; object-fit: cover;
+                        position: relative; z-index: 0;
+                        transition: 0.5s all ease-in-out;
+                    }
+                    
+                    .icon {
+                        position: absolute; top: 50%; left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 50px; z-index: 1;
+                        transition: 0.3s all ease-in-out;
+                    }
+                }
+
+                .slider-content {
+                    display: flex; flex-direction: column;
+                    padding: 8px; font-family: 'Lato', sans-serif;
+                    color: rgba(50,50,50,1);
+                    transition: 0.3s all ease-in-out;
+
+                    .title { font-size: 1.2rem; font-weight: bold;  }
+                    .date { font-size: 1rem; }
+                }
+
+                &:hover {
+                    .img-cover {
+                        .thumbnail { opacity: 0.8; }
+                        .icon { width: 75px; }
+                    }
+
+                    .slider-content { color: rgba(200,50,50,1); }
+                }
             }
         }
     }
