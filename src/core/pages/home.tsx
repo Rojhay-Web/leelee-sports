@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { gql, useQuery, useLazyQuery } from '@apollo/client';
 import { ripples } from 'ldrs';
 import Slider from "react-slick";
+import _ from "lodash";
 
 import { API_URL, parseRichText } from "../../utils";
 import { formatDateV2, VIDEOS_URL } from "../../utils/_customUtils";
@@ -34,7 +35,7 @@ import leagueImg6 from "../../assets/home/image6.jpg";
 import youtube_icon from '../../assets/logo/youtube.png';
 
 // Types
-import { SiteVideo } from "../../datatypes";
+import { Photo, SiteVideo } from "../../datatypes";
 type HomeCoverType = {
     title: string;
     backImage: string;
@@ -46,6 +47,11 @@ type HomeSportsType = {
     title: string;
     description: string;
     logo: string;
+}
+
+type PartnerListsType = {
+    list1?: Photo[],
+    list2?: Photo[]
 }
 
 const introVideoId = 'FgB79gj4S60';
@@ -69,6 +75,25 @@ const slider_settings = {
             breakpoint: 770,
             settings: {
                 slidesToShow: 1.5,
+                infinite: false,
+                autoplay: false,
+            }
+        }
+    ]
+};
+const partner_slider_settings = {
+    infinite: true,
+    slidesToShow: 5,
+    slidesToScroll: 1,
+    autoplay: true,
+    speed: 20000,
+    autoplaySpeed: 0,
+    cssEase: "linear",
+    responsive: [
+        {
+            breakpoint: 770,
+            settings: {
+                slidesToShow: 3,
                 infinite: false,
                 autoplay: false,
             }
@@ -116,10 +141,13 @@ function Home(){
     const [selectedSport, setSelectedSport] = useState<HomeSportsType>();
     const [moreLeagueImages] = useState<string[]>([leagueImg1, leagueImg2, leagueImg3, leagueImg4, leagueImg5, leagueImg6]);
 
+    const [partners, setPartners] = useState<PartnerListsType>({ list1: undefined, list2: undefined });
+
     const welcomeContainerRef = useRef<HTMLDivElement>(null);
     
     const { loading, data } = useQuery(GET_PAGE_QUERY, {variables: { key: PAGE_KEY, page: 1, pageSize: 10 }, fetchPolicy: 'cache-and-network' });
     const [retrieveSportPhotos, { loading: sp_loading,  data: sp_data }] = useLazyQuery(GET_PHOTOSET_IMAGES_QUERY, {fetchPolicy: 'cache-and-network' });
+    const [retrievePartnerPhotos, { loading: par_loading,  data: par_data }] = useLazyQuery(GET_PHOTOSET_IMAGES_QUERY, {fetchPolicy: 'cache-and-network' });
     
     const handleClickOutside = (event: any) => {
         if ((welcomeContainerRef.current && !welcomeContainerRef.current.contains(event.target))) {
@@ -134,7 +162,14 @@ function Home(){
                     case "sports-list":
                         setSportsList(pageKey?.value?.data || []);
                         break;
-                    case "sponsors":
+                    case "partners":
+                        if(pageKey?._id){
+                            retrievePartnerPhotos({
+                                variables: { 
+                                    id: pageKey?.metaData?.tag, page: 1, pageSize: 16
+                                }
+                            });
+                        }
                         break;
                     default:
                         break;
@@ -154,6 +189,28 @@ function Home(){
             retrieveSportPhotos({ variables: { id: selectedSport?._id, page: 1, pageSize: 6 }});
         }
     },[selectedSport]);
+
+    // Get Partner Images
+    useEffect(() => {
+        if(!par_loading && par_data?.photosetImages?.results) {
+            let list1=undefined, list2=undefined;
+
+            if(par_data?.photosetImages?.results?.length > 5) {
+                const midIndex = Math.ceil(par_data.photosetImages.results.length / 2);
+
+                const tmp_list1 = par_data.photosetImages.results.slice(0, midIndex);
+                const tmp_list2 = par_data.photosetImages.results.slice(midIndex);
+
+                // Duplicate list to fix UI glitch for small lists
+                list1 = (tmp_list1?.length < 8 ? [..._.cloneDeep(tmp_list1), ..._.cloneDeep(tmp_list1)] : tmp_list1);
+                list2 = (tmp_list2?.length < 8 ? [..._.cloneDeep(tmp_list2), ..._.cloneDeep(tmp_list2)] : tmp_list2);
+            } else if(par_data?.photosetImages?.results?.length > 0){
+                list1 = par_data?.photosetImages?.results;
+            }
+
+            setPartners({ list1: list1, list2: list2 });
+        }
+    },[par_loading, par_data]);
 
     useEffect(() => {
         // Load Ring Loader Animation
@@ -175,7 +232,7 @@ function Home(){
     return (
         <div className="core-page home">
             <section className="landing-section">             
-                <div className="home-cover-container">
+                <div className="home-cover-container slow-blink">
                     <img src={cover.backImage} alt={`${cover.title} cover`} className="back-cover slow-blink"/>
                     <div className="back-cover-cover" />
                     <div className="cover-title slow-blink">{cover.title}</div>
@@ -254,6 +311,7 @@ function Home(){
             </section>
 
             <section className="our-videos">
+                <div className="gradient-background-container"><div className="gradient-background" /></div>
                 <h1 className="lrgTitle ctr c0" data-text="Videos">League Videos</h1>
 
                 <div className="site-btn-container end">
@@ -265,7 +323,7 @@ function Home(){
 
                 <div className="video-container">
                     {loading ?
-                        <>Loading...</> :
+                        <div className="empty-list-container"><l-ripples size="150" speed="1.5" color="rgba(200,175,175,1)" /></div> :
                         <>
                             {!(data?.videos?.results?.length > 0) ?
                                 <h2>More Videos TO Come</h2> :
@@ -289,7 +347,44 @@ function Home(){
                 </div>                
             </section>
 
-            <section className="our-partners"></section>
+            <section className="our-partners">
+                <h2>Growing Together with the Support of Our Valued Partners</h2>
+
+                <div className="partner-lists-container">
+                    {par_loading ?
+                        <div className="empty-list-container"><l-ripples size="150" speed="1.5" color="rgba(200,175,175,1)" /></div> :
+                        <>
+                            {partners?.list1 && 
+                                <div className="partner-slider-container">
+                                    <Slider {...partner_slider_settings}>
+                                        {partners.list1.map((photo: Photo, key: number) =>
+                                            <div className="partner-photo-container" key={key}>
+                                                <div className="partner-photo">
+                                                    <img src={`${API_URL}/kaleidoscope/${photo._id}`} alt={`league ${key}`} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </Slider>
+                                </div>
+                            }
+
+                            {partners?.list2 && 
+                                <div className="partner-slider-container">
+                                    <Slider {...{...partner_slider_settings, rtl: true }}>
+                                        {partners.list2.map((photo: Photo, key: number) =>
+                                            <div className="partner-photo-container" key={key}>
+                                                <div className="partner-photo">
+                                                    <img src={`${API_URL}/kaleidoscope/${photo._id}`} alt={`league ${key}`} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </Slider>
+                                </div>
+                            }
+                        </>
+                    }
+                </div>
+            </section>
         </div>
     );
 }

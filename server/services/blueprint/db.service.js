@@ -11,7 +11,9 @@ const _ = require('lodash');
 const log = require('../log.service');
 const util = require('../../utils/util');
 
-const client = new MongoClient(process.env.DatabaseConnectionString);
+const { DatabaseConnectionString, SALT_ROUNDS, DEFAULT_ADMIN_EMAIL, DatabaseName, IMAGE_STORAGE_FS } = process.env;
+
+const client = new MongoClient(DatabaseConnectionString);
 (async () => { await client.connect(); log.debug(`Connected Successfully to server`); })();
 
 const appTables = {
@@ -253,7 +255,7 @@ module.exports = {
             }
 
             /* Encrypt Password */
-            const hash = await bcrypt.hashSync(password, parseInt(process.env.SALT_ROUNDS));
+            const hash = await bcrypt.hashSync(password, parseInt(SALT_ROUNDS));
 
             const upsertUser = { 
                 email: email,
@@ -859,7 +861,7 @@ module.exports = {
                 }
 
                 const formObj = await collection.findOne({ id: id });
-                const toEmail = formObj?.alertEmail ?? process.env.DEFAULT_ADMIN_EMAIL;
+                const toEmail = formObj?.alertEmail ?? DEFAULT_ADMIN_EMAIL;
                 const sentTime = util.formatDate(new Date());
 
                 const mail_status = await mail.sendEmail(toEmail, `Lee Lee`, { 
@@ -1065,7 +1067,9 @@ module.exports = {
                     ret = { path: imgPath };
                 }
 
-                localStore.updateCacheStore("photos", image_id, ret);
+                if(IMAGE_STORAGE_FS === "1") {
+                    localStore.updateCacheStore("photos", image_id, ret);
+                }
                 return { results: ret };
             }
             catch(ex){
@@ -1263,7 +1267,7 @@ async function dbCollection(conn_collection) {
     let collection = null;
     try {
         //await client.connect(); //log.debug(`Connected Successfully to server`);
-        const db = client.db(process.env.DatabaseName);
+        const db = client.db(DatabaseName);
         collection = db.collection(conn_collection);
     }
     catch(ex){
@@ -1361,14 +1365,13 @@ async function resizeImageSharp(inputPath, outputPath) {
 
         let ret = { status: false, data: null };
         
-        if(process.env.IMAGE_STORAGE_FS === "1") {
+        if(IMAGE_STORAGE_FS === "1") {
             await sharp(inputPath)
                 .resize({ width: tmpWidth })
                 .toFile(outputPath);
 
             ret.status = true;
-        }
-        else {
+        } else {
             const imgBuffer = await sharp(inputPath)
                 .resize({ width: tmpWidth })
                 .toFormat('jpeg')
