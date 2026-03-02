@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { gql, useQuery, useLazyQuery } from '@apollo/client';
+import { ripples } from 'ldrs';
 
-import { API_URL, handleGQLError } from "../../utils";
+import { API_URL, parseRichText } from "../../utils";
 
 // Images: Cover
 import homeCover1 from "../../assets/landing/cover1.jpg";
@@ -77,12 +78,12 @@ function Home(){
     const [coverVideo, setCoverVideo] = useState(false);
 
     const [sportsList, setSportsList] = useState<HomeSportsType[]>([]);
-    const [selectedSport, setSelectedSport] = useState<string>();
+    const [selectedSport, setSelectedSport] = useState<HomeSportsType>();
     const [moreLeagueImages] = useState<string[]>([leagueImg1, leagueImg2, leagueImg3, leagueImg4, leagueImg5, leagueImg6]);
 
     const welcomeContainerRef = useRef<HTMLDivElement>(null);
-
-    const { loading, error, data } = useQuery(GET_PAGE_QUERY, {variables: { key: PAGE_KEY }, fetchPolicy: 'cache-and-network' });
+    
+    const { loading, data } = useQuery(GET_PAGE_QUERY, {variables: { key: PAGE_KEY }, fetchPolicy: 'cache-and-network' });
     const [retrieveSportPhotos, { loading: sp_loading,  data: sp_data }] = useLazyQuery(GET_PHOTOSET_IMAGES_QUERY, {fetchPolicy: 'cache-and-network' });
 
     const handleClickOutside = (event: any) => {
@@ -109,17 +110,21 @@ function Home(){
 
     useEffect(() => {
         if(sportsList.length > 0){
-            setSelectedSport(sportsList[0]._id);
+            setSelectedSport(sportsList[0]);
         }
     },[sportsList]);
 
     useEffect(() => {
         if(selectedSport){
-            retrieveSportPhotos({ variables: { id: selectedSport, page: 1, pageSize: 6 }});
+            retrieveSportPhotos({ variables: { id: selectedSport?._id, page: 1, pageSize: 6 }});
         }
     },[selectedSport]);
 
     useEffect(() => {
+        // Load Ring Loader Animation
+        ripples.register();
+
+        // Randomly Set COver Photo
         const min = 0, max = homeCover.length - 1;
         const rndInt = Math.floor(Math.random() * (max - min + 1)) + min;
         setCover(homeCover[rndInt]);
@@ -131,8 +136,6 @@ function Home(){
             document.removeEventListener("click", handleClickOutside, false);
         };
     }, []);
-
-    if(error) { console.log(error.message); }
 
     return (
         <div className="core-page home">
@@ -164,11 +167,15 @@ function Home(){
             <section className="our-sports-section">
                 <div className="sports-list-container">
                     <div className="sports-list-inner-container">
-                        {sportsList.map((sport: HomeSportsType, key: number) => 
-                            <div className={`sport-item ${selectedSport === sport._id ? 'selected' : ''}`} key={key} onClick={() => setSelectedSport(sport._id)}>
+                        {!loading && sportsList.map((sport: HomeSportsType, key: number) => 
+                            <div className={`sport-item ${selectedSport?._id === sport._id ? 'selected' : ''}`} key={key} onClick={() => setSelectedSport(sport)}>
                                 <span className="sport-logo material-symbols-outlined">{sport?.logo ?? 'trophy'}</span>
                                 <span className="sport-title">{sport.title}</span>
                             </div>
+                        )}
+
+                        {loading && [0,0,0].map((_empty:any, key: number) =>
+                            <div className='sport-item empty' key={key} />
                         )}
 
                         <div className={`sport-item ${!selectedSport ? 'selected' : ''}`} onClick={() => setSelectedSport(undefined)}>
@@ -180,22 +187,39 @@ function Home(){
 
                 <div className="sports-info-container">
                     <div className="image-container">
-                        {(!selectedSport) ?
+                        {!loading && !sp_loading ?
                             <>
-                                {moreLeagueImages.map((img, key) => 
-                                    <div className="league-image" key={key}><img src={img} alt={`league ${key}`} /></div>
-                                )}
+                                {(!selectedSport) ?
+                                    <>
+                                        {moreLeagueImages.map((img, key) => 
+                                            <div className="league-image" key={key}><img src={img} alt={`league ${key}`} /></div>
+                                        )}
+                                    </> :
+                                    <>
+                                        {sp_data?.photosetImages?.results.map((img:any, key:number) => 
+                                            <div className="league-image" key={key}>
+                                                <img src={`${API_URL}/kaleidoscope/${img._id}`} alt={`league ${key}`} />
+                                            </div>
+                                        )}
+                                    </>
+                                }
                             </> :
-                            <>
-                                {sp_data?.photosetImages?.results.map((img:any, key:number) => 
-                                    <div className="league-image" key={key}>
-                                        <img src={`${API_URL}/kaleidoscope/${img._id}`} alt={`league ${key}`} />
-                                    </div>
-                                )}
-                            </>
+                            <div className="league-image empty"><l-ripples size="150" speed="1.5" color="rgba(200,175,175,1)" /></div>
                         }
                     </div>
+
+                    <div className="sport-details-container">{parseRichText(selectedSport?.description ?? '')}</div>
+                    <div className="sport-btn-container">
+                        <a href="" className="site-btn c2">
+                            <span className="icon material-symbols-outlined">tour</span>
+                            <span className="title">League Information</span>
+                        </a>
+                    </div>
                 </div>
+            </section>
+
+            <section className="our-videos">
+                
             </section>
         </div>
     );

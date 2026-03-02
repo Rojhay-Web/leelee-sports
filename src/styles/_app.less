@@ -26,6 +26,14 @@
 @import "_fonts.less";
 @font-size: 14px;
 
+/* Shimmer base animation */
+.shimmer-loader() {
+    background: linear-gradient(-45deg, #eee 40%, #fafafa 50%, #eee 60%);
+    background-position-x: 100%;
+    background-size: 300%;
+    animation: shimmer 1s infinite linear;
+}
+
 /* Additional Page styles */
 body, html { 
     // color: rgba(255,255,255,1);
@@ -97,7 +105,7 @@ body, html {
 
         .link-btn { 
             margin: auto 0;
-            border-radius: 50px; padding: .5rem 1rem;
+            border-radius: 50px; padding: .5rem 1.2rem;
             color: #fff; background: @base;
             text-decoration: none; text-align: center;
             transition: 0.4s all ease-in-out; cursor: pointer;   
@@ -112,13 +120,20 @@ body, html {
 
             .icon {
                 font-size: 1rem; margin-right: .5rem;
+                transition: 0.4s all ease-in-out;
             }
-            &:hover { background: rgba(255,255,255,0.2); }
+
+            &:hover { 
+                background: rgba(255,255,255,0.2);
+                .icon { transform: translateX(-4px); } 
+            }
         }
 
         .nav-login-btn-container {
-            display: flex; flex-direction: column; justify-content: center;
-            margin-left: 2rem;
+            display: flex; flex-direction: column; 
+            justify-content: center; margin-left: 2rem;
+
+            @media @mobile-nav { margin-left: 1rem; }
         }
     }
 }
@@ -190,6 +205,42 @@ body, html {
     @media @mobile-device { display: block; }
 }
 
+/* components */
+.site-btn {
+    padding: 8px 24px; border-radius: 50px; 
+    color: #fff; background: @base;
+    text-decoration: none; text-align: center;
+    display: flex; flex-direction: row;
+    transition: 0.4s all ease-in-out; cursor: pointer;
+
+    -moz-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+
+    span {
+        display: flex; flex-direction: column;
+        justify-content: center; font-size: 1.3rem;
+        transition: 0.4s all ease-in-out;
+
+        &.icon { margin-right: 0.5rem; font-size: 1.5rem; }
+        &.title {
+            font-family: 'Bebas Neue', cursive;
+        }
+    }
+
+    &:hover { 
+        color: #fff; text-decoration: none; 
+        .icon { transform: translateX(-4px); }
+    }
+
+    &.disabled { cursor: default; }
+    &.c2 { .color2(background,0.7); &:hover { .color2(background,1); } } 
+    &.c3 { .color3(background,0.7); &:hover { .color3(background,1); } }
+    &.c4 { .color4(background,0.7); &:hover { .color4(background,1); } } 
+    &.c5 { .color5(background,0.7); &:hover { .color5(background,1); } }
+}
+
+
 /* Icons */
 .close-nav { 
     width: 27px; height: 27px; position: relative;
@@ -210,6 +261,12 @@ body, html {
     }
     100% {
         opacity: 1;
+    }
+}
+
+@keyframes shimmer {
+    to {
+       background-position-x: 0%
     }
 }
 

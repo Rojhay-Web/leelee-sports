@@ -167,21 +167,43 @@
                     display: flex; flex-direction: row; 
                     padding: 4px 8px; cursor: pointer;
                     color: #000;
+                    transition: 0.4s all ease-in-out;
 
                     .sport-logo {
                         font-size: 1.5rem; margin-right: 0.5rem;
+                        transition: 0.4s all ease-in-out;
                     }
 
                     .sport-title {
-                        font-size: 1.2rem;
-                        font-family: 'Barlow Condensed', sans-serif;
+                        font-size: 1.4rem;
+                        font-family: 'Bebas Neue', cursive;
                     }
 
-                    &+.sport-item { margin-left: 15%; }
+                    &.empty { 
+                        height: 1rem; width: 100px;
+                        border-radius: 1rem;
+                        .shimmer-loader();
+                    }
+
+                    &+.sport-item { 
+                        margin-left: 15%; 
+                        @media @mobile-nav { margin-left: 7%; }
+                    }
 
                     &.selected { color: @color2; cursor: default; }
+                    
+                    &:hover:not(.selected) { 
+                        .color3(color, 0.7); 
+                        .sport-logo {
+                            transform: translateX(-4px);
+                        }
+                    }
                 }
+
+                @media @mobile-nav { padding: 0 6%; overflow-x: auto; }
             }
+
+            @media @mobile-nav { padding: 0; }
         }
 
         .sports-info-container {
@@ -193,12 +215,23 @@
 
                 .league-image {
                     position: absolute; border-radius: 8px; overflow: hidden;
-                    background-color: rgba(75,75,75,1);
+                    background-color: rgba(75,75,75,1); opacity: 0;
                     -moz-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
                     -webkit-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
                     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+                    animation: fadeIn 0.7s forwards;
 
                     img { width: 100%; min-height: 100%; object-fit: cover;}
+
+                    &.empty {
+                        position: relative; 
+                        .shimmer-loader();
+
+                        * { 
+                            position: absolute; top: 50%; left: 50%;
+                            transform: translate(-50%, -50%);
+                        }
+                    }
 
                     &:nth-child(1) { 
                         top: 50%; left: 50%; 
@@ -210,32 +243,76 @@
                         top: 50%; left: 25%; 
                         transform: translate(-50%, -50%); 
                         width: 250px; height: 200px; 
+                        animation-delay: 0.35s;
                     }
 
                     &:nth-child(3) {
                         top: 0; left: 40%; 
                         transform: translate(-50%, -50%); 
-                        width: 150px; height: 100px; 
+                        width: 150px; height: 100px;
+                        animation-delay: 0.7s; 
                     }
 
                     &:nth-child(4) { 
                         top: 50px; right: 80px; 
                         transform: translate(-50%, -50%); 
-                        width: 200px; height: 150px; 
+                        width: 200px; height: 150px;
+                        animation-delay: 1.05s; 
                     }
 
                     &:nth-child(5) {
-                        top: 60%; right: 40px; 
+                        top: 60%; right: 60px; 
                         transform: translate(-50%, -50%); 
                         width: 150px; height: 100px; 
+                        animation-delay: 1.40s;
                     }
 
                     &:nth-child(6) { 
                         top: 100%; left: 60%; 
                         transform: translate(-50%, -50%); 
-                        width: 300px; height: 150px; 
+                        width: 300px; height: 150px;
+                        animation-delay: 1.75s; 
+                    }
+
+                    @media @mobile-nav {
+                        position: relative;
+                        top: initial !important; 
+                        left: initial !important;
+                        right: initial !important;
+                        transform: initial !important;
+                        margin-bottom: 8px;
+
+                        &:nth-child(1), &:nth-child(2), &:nth-child(3) { width: calc(33% - 4px); height: 100px; }
+
+                        &:nth-child(4) { width: 100%; height: 200px; }
+
+                        &:nth-child(5), &:nth-child(6) { 
+                            width: calc(50% - 4px); height: 100px;
+                        }
                     }
                 }
+
+                @media @mobile-nav { 
+                    display: flex; flex-direction: row;
+                    flex-wrap: wrap; justify-content: space-between;
+                    margin: 2rem 0;
+                }
+            }
+
+            .sport-details-container {
+                width: 75%; text-align: center;
+                margin: 3rem auto; font-size: 1.3rem;
+                line-height: 2.5rem;
+
+                @media @mobile-nav {
+                    margin: 1rem auto;
+                    width: calc(100% - @page-padding);
+                }
+            }
+
+            .sport-btn-container {
+                display: flex; flex-direction: row;
+                justify-content: center; padding: 0 @page-padding 2rem;
             }
         }
     }
