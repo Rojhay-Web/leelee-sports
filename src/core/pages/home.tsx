@@ -240,10 +240,14 @@ function Home(){
                 </div> 
 
                 <div className={`welcome-container ${coverVideo ? 'video-playing' : ''}`} ref={welcomeContainerRef}>
-                    <div className='video-container' onClick={()=> setCoverVideo(true)}>
+                    {/*<div className='video-container' onClick={()=> setCoverVideo(true)}>
                         <span className="icon material-symbols-outlined">play_circle</span>
                         <img src={`https://img.youtube.com/vi/${introVideoId}/hqdefault.jpg`} alt='intro video thumbnail' className="intro-video-thumbnail"/>
-                    </div>
+                    </div>*/}
+                    <a className='video-container' href={`https://www.youtube.com/watch?v=${introVideoId}`} target="_blank" rel="noreferrer">
+                        <span className="icon material-symbols-outlined">play_circle</span>
+                        <img src={`https://img.youtube.com/vi/${introVideoId}/hqdefault.jpg`} alt='intro video thumbnail' className="intro-video-thumbnail"/>
+                    </a>
                     <div className="content-container">
                         <div className="text-container">
                             <p>
