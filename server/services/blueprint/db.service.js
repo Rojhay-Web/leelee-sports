@@ -14,7 +14,7 @@ const util = require('../../utils/util');
 const { DatabaseConnectionString, SALT_ROUNDS, DEFAULT_ADMIN_EMAIL, DatabaseName, IMAGE_STORAGE_FS } = process.env;
 
 const client = new MongoClient(DatabaseConnectionString);
-(async () => { await client.connect(); log.debug(`Connected Successfully to server`); })();
+(async () => { await client.connect(); log.debug(`Blueprint Connected Successfully to server`); })();
 
 const appTables = {
     "users":true, "site_pages":true
@@ -27,6 +27,7 @@ formTypes = {
 };
 
 module.exports = {
+    dbClient: client,
     getAppTable: async function(table){
         try {
             if(!(table in appTables)){

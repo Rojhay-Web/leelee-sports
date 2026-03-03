@@ -1,0 +1,304 @@
+require('dotenv').config();
+const { ObjectId } = require('mongodb');
+
+const log = require('../log.service');
+const util = require('../../utils/util');
+const { dbClient: client } = require('../blueprint/db.service');
+
+const { DatabaseName } = process.env;
+
+const appTables = {
+    "league_sports":true, "ls_locations":true
+};
+
+module.exports = {
+    getAppTable: async function(table){
+        try {
+            if(!(table in appTables)){
+                return { error: "Invalid Table" };
+            }
+
+            const collection = await dbCollection(table);
+            if(collection == null){
+                return { error: "Unable to connect to DB [Please contact site admin]"};
+            }
+
+            const appData = await collection.find({}).toArray();
+            return { results: appData};
+        }
+        catch(ex){
+            log.error(`Getting All By Table: ${ex}`);
+            return { 'error': 'Getting All By Table [E00]'};
+        }
+    },
+    // League Sports
+    upsertLeagueSport: async function(_id=null, title=null, icon=null, description=null, active=null){
+        try {
+            const collection = await dbCollection("league_sports");
+            if(collection == null){
+                return { "error": "Unable to connect to DB [Please contact site admin]"};
+            }
+
+            
+            // UPDATE Existing League Sport
+            if(_id){
+                /* Check if League Sport Exists By ID */
+                const query = { _id: new ObjectId(_id) };
+                const findSport = await collection.findOne(query);
+
+                if(!findSport){
+                    return { error: `Sport DNE` };
+                }
+
+                // Update League Sport                
+                let setDict = { 
+                    ...(title ? { title: title } : {}), 
+                    ...(icon ? { icon: icon } : {}),
+                    ...(description ? { description: description } : {}),
+                    ...(active != null ? { active: active } : {}),
+                };
+                const result = await collection.updateOne(query, { $set: setDict});
+
+                return { results: (result.matchedCount ? _id : null) };
+            }
+
+                 
+            // Validate Sport Data
+            let param_validation = util.validateValue([ 
+                { type:"text", data: title, title: "title" }, 
+            ]);
+
+            if(param_validation.length > 0){
+                return { error: `Missing Sport Data: ${param_validation.join(', ')}` };
+            }
+
+            // CREATE New League Sport
+            const result = await collection.insertOne({ 
+                title: title,
+                icon: icon,
+                description: description, 
+                active: active != null ? active : false
+            });
+
+            return { results: (result?.insertedId ?? null) };             
+        } catch(ex){
+            log.error(`Upserting League Sport: ${ex}`);
+            return { "error": `Upserting League Sport`};
+        }
+    },
+
+    // League Store Config
+    getStoreConfigs: async function(key=null){
+        try {
+            const collection = await dbCollection("ls_store_config");
+            if(collection == null){
+                return { "error": "Unable to connect to DB [Please contact site admin]"};
+            }
+
+            const configData = await collection.find({
+                ...(key ? { key: key.toLowerCase() } : {})
+            }).toArray();
+
+            return { results: configData };
+        } catch(ex){
+            log.error(`Getting League Store Config: ${ex}`);
+            return { "error": `Getting League Store Config`};
+        }
+    },
+    updateLeagueStoreConfig: async function(_id, minimum=null, category=null, categorySet=null, addons=null){
+        try {
+            const collection = await dbCollection("ls_store_config");
+            if(collection == null){
+                return { "error": "Unable to connect to DB [Please contact site admin]"};
+            }
+
+            /* Check if League Sport Exists By ID */
+            const query = { _id: new ObjectId(_id) };
+            const findConfig = await collection.findOne(query);
+
+            if(!findConfig){
+                return { error: `League Config DNE` };
+            }
+             
+            // Update League Sport                
+            let setDict = {  
+                ...(minimum ? { minimum: minimum } : {}),
+                ...(category ? { category: category } : {}),
+                ...(categorySet ? { categorySet: categorySet } : {}),
+                ...(addons ? { addons: addons } : {})
+            };
+            const result = await collection.updateOne(query, { $set: setDict });
+
+            return { results: (result.matchedCount ? _id : null) };
+        } catch(ex){
+            log.error(`Updating League Store Config: ${ex}`);
+            return { "error": `Updating League Store Config`};
+        }
+    },
+
+    // League Location
+    upsertLeagueLocation: async function(_id=null, name=null, merchantInfo=null){
+        try {
+            const collection = await dbCollection("ls_locations");
+            if(collection == null){
+                return { "error": "Unable to connect to DB [Please contact site admin]"};
+            }
+            
+            // UPDATE Existing League Location
+            if(_id){
+                /* Check if League Location Exists By ID */
+                const query = { _id: new ObjectId(_id) };
+                const findLocation = await collection.findOne(query);
+
+                if(!findLocation){
+                    return { error: `League Location DNE` };
+                }
+
+                // Update League Location                
+                let setDict = { 
+                    ...(name ? { name: name } : {}), 
+                    ...(merchantInfo ? { merchantInfo: merchantInfo } : {})
+                };
+
+                const result = await collection.updateOne(query, { $set: setDict});
+                return { results: (result.matchedCount ? _id : null) };
+            }
+                 
+            // Validate Data
+            let param_validation = util.validateValue([ 
+                { type:"text", data: name, title: "name" }, 
+            ]);
+
+            if(param_validation.length > 0){
+                return { error: `Missing Location Data: ${param_validation.join(', ')}` };
+            }
+
+            // CREATE New League Location
+            const result = await collection.insertOne({ 
+                name: name,
+                ...(merchantInfo ? { merchantInfo: merchantInfo } : {})
+            });
+
+            return { results: (result?.insertedId ?? null) };             
+        } catch(ex){
+            log.error(`Upserting League Location: ${ex}`);
+            return { "error": `Upserting League Location`};
+        }
+    },
+
+    // Store Items
+    storeItems: {
+        search: async function(store_key=null, query=null, active=true, page=1, pageSize=15){
+            try {
+                const collection = await dbCollection("ls_store_items");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                let safeQuery = _.escapeRegExp(query);
+                const offset = ((page - 1) * pageSize);
+                const sort = active ? { start_dt: sortAsc ? 1 : -1 } : {};
+                
+                const colQuery = {
+                    $and: [
+                        ...(query ?  {
+                            $or: [
+                                { title: {'$regex': safeQuery, '$options' : 'i'}},
+                                { description: {'$regex': safeQuery, '$options' : 'i'}}
+                            ]
+                        } : {}),
+                        ...(store_key ? { store_id: store_key } : {}),
+                        ...(active ? 
+                                {
+                                    active: true,
+                                    end_dt: { $gt: new Date()}
+                                } : 
+                                {
+                                    $or: [
+                                        { active: false },
+                                        {  end_dt: { $lte: new Date()} }
+                                    ]
+                                }
+                        )
+                    ]
+                };
+
+                const queryItems = await collection.find(colQuery)
+                    .sort(sort).limit(pageSize)
+                    .skip(offset).toArray();
+
+                const queryCount = await collection.countDocuments(colQuery);
+
+                return { 
+                    results: queryItems, totalCount: queryCount,
+                    pagesLeft: util.hasPagesLeft(page, pageSize, queryCount) 
+                };
+            } catch(ex){
+                log.error(`Searching League Store Items: ${ex}`);
+                return { "error": `Searching League Store Items`};
+            }
+        },
+        upsert: async function(_id=null, item) {
+            try {
+                const collection = await dbCollection("ls_store_items");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                // Validate Data
+                let param_validation = util.validateValue([
+                    { type:"text", data: item?.store_id, title: "store" }, 
+                    { type:"text", data: item?.title, title: "title" },
+                    { type:"number", data: item?.price_per_item, title: "price_per_item" }, 
+                    { type:"number", data: item?.additional_set_price, title: "additional_set_price" }
+                ]);
+
+                if(param_validation.length > 0){
+                    return { error: `Missing Required Field(s): ${param_validation.join(', ')}` };
+                }
+
+                // UPDATE Existing League Store Item
+                if(_id){                
+                    let setDict = { ...item };
+                    if("_id" in setDict) delete setDict._id;
+
+                    const result = await collection.updateOne(query, { $set: setDict});
+                    return { results: (result.matchedCount ? _id : null) };
+                }
+                
+                // CREATE New League Store Item
+                const result = await collection.insertOne(setDict);
+
+                return { results: (result?.insertedId ?? null) }; 
+            } catch(ex){
+                log.error(`Upserting League Store Item: ${ex}`);
+                return { "error": `Upserting League Store Item`};
+            }
+        }
+    }
+}
+
+/* Private Functions */
+async function dbCollection(conn_collection) {
+    let collection = null;
+    try {
+        //await client.connect(); //log.debug(`Connected Successfully to server`);
+        const db = client.db(DatabaseName);
+        collection = db.collection(conn_collection);
+    }
+    catch(ex){
+        log.error(`Connection to Database: ${ex}`);
+    }
+
+    return collection;
+}
+
+
+/* Connection Clean Up */
+const cleanup = (event) => {
+    log.debug(`Closing Connection`);
+    client.close(); process.exit(); 
+}
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);

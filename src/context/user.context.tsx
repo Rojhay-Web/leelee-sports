@@ -43,6 +43,7 @@ function Provider({ children }: { children: any }) {
 
     const [activeRoles] = useState({
         'ADMIN': { title:'Site Admin', key: 'ADMIN', colorTheme: '235,17,20' },
+        'LEAGUE_STORE_ADMIN': { title:'League Store Admin', key: 'LEAGUE_STORE_ADMIN', colorTheme: '243,193,15' },
     });
 
     const adminComponents: AdminPathType[] = [

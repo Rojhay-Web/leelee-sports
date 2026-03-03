@@ -9,7 +9,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "heroku-postbuild": "npm run build",
-    "build-db": "node server/scripts/initDB.js"
+    "build-db": "node server/scripts/initDB.js",
+    "build-lsdb": "node server/scripts/initLS-DB.js"
   },
   "dependencies": {
     "@apollo/client": "^3.11.10",

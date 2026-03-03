@@ -9,8 +9,8 @@ import ApolloContext from "./context/apollo.context";
 function App(){
     return(
         <ContextCompose items={[
+            [UserContext],
             [ApolloContext],
-            [UserContext]
           ]}>
           <SiteRoutes />
         </ContextCompose>

@@ -8,6 +8,9 @@ const db = require('../services/blueprint/db.service.js'),
     log = require('../services/log.service.js'),
     util = require('../utils/util.js');
 
+// League Store Services
+const ls_db = require('../services/leagueStore/db.service.js');
+
 module.exports = function (localStore) {
     const resolver = {
         Query:{
@@ -165,6 +168,36 @@ module.exports = function (localStore) {
                 util.validateGQLParams(["type","id"], args);
 
                 let ret = await db.getSubmittedFormData(args?.type, args?.id, args?.parentId, args?.page, args?.pageSize);
+                util.checkGQLResults(ret);
+
+                return ret;
+            },
+
+            /* Leagues */
+            sports: async(_obj, _args, _context, _info) => {
+                let ret = await ls_db.getAppTable("league_sports");
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+
+            /* League Store */
+            storeConfigs: async(_obj, args, _context, _info) => {
+                let ret = await ls_db.getStoreConfigs(args?.key);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+            leagueLocations: async(_obj, _args, _context, _info) => {
+                let ret = await ls_db.getAppTable("ls_locations");
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+            storeItems: async(_obj, args, context, _info) => {
+                // Validate Active User
+                util.activeUserCheck(context);
+                let ret = await ls_db.storeItems.search(args?.store_key, args?.query, args?.active, args?.page, args?.pageSize);
                 util.checkGQLResults(ret);
 
                 return ret;
@@ -339,6 +372,47 @@ module.exports = function (localStore) {
                     await db.archiveFeatureItem(args.featureType, args?.id)
                 );
 
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+
+            // Leagues
+            upsertSport: async(_obj, args, context, _info) => {
+                // Validate Active User & Roles
+                // util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
+
+                let ret = await ls_db.upsertLeagueSport(args?.id, args?.title, args?.icon, args?.description, args?.active);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+
+            // League Store
+            updateLeagueStoreConfig: async(_obj, args, context, _info) => {
+                // Validate Active User & Roles
+                util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
+                util.validateGQLParams(["id"], args);
+
+                let ret = await ls_db.updateLeagueStoreConfig(args.id, args?.minimum, args?.category, args?.categorySet, args?.addons);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+            upsertLeagueLocation: async(_obj, args, context, _info) => {
+                // Validate Active User & Roles
+                util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
+
+                let ret = await ls_db.upsertLeagueLocation(args?.id, args?.name, args?.merchantInfo);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+            upsertStoreItems: async(_obj, args, context, _info) => {
+                // Validate Active User & Roles
+                util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
+
+                let ret = await ls_db.storeItems.upsert(args?.id, args?.item);
                 util.checkGQLResults(ret);
 
                 return ret?.results;

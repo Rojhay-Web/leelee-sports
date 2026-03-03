@@ -30,6 +30,12 @@ module.exports = gql`
         formDetails(type:String!, id:String!, parentId: String):Form
         querySiteForms(query:String, page:Int, pageSize: Int): PagedForm
         submittedFormData(type: String!, id: String!, parentId: String, page:Int, pageSize: Int):PagedFormData
+
+        sports: [LeagueSports]
+        storeConfigs(key: String): [LeagueStoreConfig]
+        leagueLocations: [LeagueLocations]
+        
+        storeItems(store_key: String, query:String, active:Boolean, page:Int, pageSize: Int): PagedLeagueStoreItems
     }
 
     type Mutation {
@@ -54,6 +60,12 @@ module.exports = gql`
         submitFormData(type: String!, id: String!, parentId: String, formData: JSONObj!): Boolean
 
         removeFeatureItem(featureType: String!, id: String!):Boolean
+
+        upsertSport(id:String, title: String, icon: String, description: String, active: Boolean): String
+        updateLeagueStoreConfig(id:String!, minimum: Int, category: String, categorySet: [String], addons: [JSONObj]): String
+        upsertLeagueLocation(id:String, name: String, merchantInfo: [JSONObj]): String
+
+        upsertStoreItems(id:String, item:JSONObj): String
     }
 
     input PageKeyInput {
@@ -220,5 +232,81 @@ module.exports = gql`
         form_parent_id: String
         form_data: JSONObj
         timestamp: Date
+    }
+
+    type LeagueSports {
+        _id: String!
+        title: String
+        icon: String
+        description: String
+        active: Boolean
+    }
+
+    type LeagueStoreAddon {
+        id: String
+        title: String
+        price: Int
+        minimum: Int
+    }
+
+    type LeagueStoreConfig {
+        _id: String!
+        key: String
+        minimum: Int
+        category: String
+        categorySet: [String]
+        addons:[LeagueStoreAddon]
+    }
+
+    type LeagueStoreMerchantInfo {
+        title: String
+        subText: String
+        defaultLogo: Boolean
+
+        store_id: String
+    }
+
+    type LeagueLocations {
+        _id: String!
+        name: String
+        merchantInfo: [LeagueStoreMerchantInfo]
+    }
+
+    type LeagueItemDetails {
+        sport_id: String
+        start_dt: Date
+        end_dt: Date
+
+        locations: [LeagueLocations]
+    }
+
+    type ApparelItemDetails {
+        customDesign: Boolean
+    }
+
+    union StoreItemDetails = LeagueItemDetails | ApparelItemDetails
+
+    type LeagueStoreItem {
+        _id: String!
+        store_id: String
+        title: String
+        description: String
+        active: Boolean
+        minimum: Int
+
+        price_per_item: Int
+        additional_set_price: Int
+
+        category: String
+        categorySet: [String]
+
+        details: StoreItemDetails
+        addons: [LeagueStoreAddon]
+    }
+    
+    type PagedLeagueStoreItems {
+        totalResults: Int
+        pagesLeft: Boolean
+        results: [LeagueStoreItem]
     }
 `;

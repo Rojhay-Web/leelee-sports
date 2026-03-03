@@ -38,10 +38,18 @@ module.exports = {
             }            
         }
     },
-    activeUserCheck(userValidation){
+    activeUserCheck(userValidation, roles=null){
         if(!process.env.DEBUG && (userValidation.error || !userValidation.results)){
             log.error(userValidation.error);
             throw new GraphQLError(userValidation.error, { extensions: { code: response.ERROR.UNAUTHORIZED } });
+        } else if(roles && 
+            !(
+                userValidation?.app_id?.roles != undefined && 
+                userValidation?.app_id?.roles.some(element => roles.includes(element)) 
+            )
+        ){
+            log.error(`Invalid Role Type`);
+            throw new GraphQLError('Invalid Role', { extensions: { code: response.ERROR.UNAUTHORIZED } });
         }
     },
     validateGQLParams(params, obj){
@@ -141,6 +149,16 @@ module.exports = {
                     case "email":
                         if(!list[i]?.data.match(emailRegex)){
                             ret.push('email');
+                        }
+                        break;
+                    case "text":
+                        if(!list[i]?.data || list[i]?.data?.length <= 0){
+                            ret.push(list[i]?.title ?? 'empty field');
+                        }
+                        break;
+                    case "number":
+                        if(!list[i]?.data || isNaN(list[i]?.data)){
+                            ret.push(list[i]?.title ?? 'empty field');
                         }
                         break;
                     default:
