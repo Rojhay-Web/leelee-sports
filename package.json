@@ -1,7 +1,7 @@
 {
   "name": "leelee-sports",
   "version": "2.0.0",
-  "blueprint-version": "0.7.1",
+  "blueprint-version": "0.8.0",
   "private": true,
   "scripts": {
     "start": "node server.js",

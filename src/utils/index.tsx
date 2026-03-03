@@ -19,7 +19,7 @@ const validSpecialChars = { '!':true, '@':true, '$':true, '&':true, '_':true, '|
 const emailRegex: RegExp = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export function parseToken(token: string){
-    var localUser: { user: User | null, expDt: Date | null } | null = null, 
+    var localUser: { user: User | null, expDt: Date | null, token?:string } | null = null, 
         isExpired: Boolean | null = true; 
 
     try {
@@ -35,11 +35,11 @@ export function parseToken(token: string){
     return { localUser, isExpired }
 }
 
-export function buildToken(user: User){
+export function buildToken(user: User, userToken?: string){
     let token = ""; 
 
     try {
-        token = JSON.stringify({ user: user, expDt: addDays(new Date(), 30) });
+        token = JSON.stringify({ user: user, token: userToken, expDt: addDays(new Date(), 30) });
     }
     catch(ex){
         log.error("[Error] parsing token: ",ex);

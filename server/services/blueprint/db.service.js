@@ -3,6 +3,7 @@ const { MongoClient, ObjectId } = require('mongodb');
 const { v4: uuidv4 } = require('uuid');
 
 const path = require('path');
+const jwt = require("jsonwebtoken");
 const fs = require('fs');
 const sharp = require('sharp');
 const bcrypt = require('bcrypt');
@@ -11,7 +12,10 @@ const _ = require('lodash');
 const log = require('../log.service');
 const util = require('../../utils/util');
 
-const { DatabaseConnectionString, SALT_ROUNDS, DEFAULT_ADMIN_EMAIL, DatabaseName, IMAGE_STORAGE_FS } = process.env;
+const { 
+    DatabaseConnectionString, SALT_ROUNDS, DEFAULT_ADMIN_EMAIL, 
+    DatabaseName, IMAGE_STORAGE_FS, TOKEN_EXPIRE_DAYS, TOKEN_SECRET
+} = process.env;
 
 const client = new MongoClient(DatabaseConnectionString);
 (async () => { await client.connect(); log.debug(`Blueprint Connected Successfully to server`); })();
@@ -274,7 +278,16 @@ module.exports = {
                 {  $set: upsertUser }, { upsert: true }
             );
 
-            return { results: {...upsertUser, _id: result.upsertedId }};
+            const token = (result.upsertedId) ? jwt.sign({ id: result.upsertedId }, TOKEN_SECRET, {
+                expiresIn: (TOKEN_EXPIRE_DAYS ?? 7) * 86400000
+            }) : null;
+
+            return { 
+                results: {
+                    user : {...upsertUser, _id: result.upsertedId },
+                    token: token
+                } 
+            };
         } catch(ex){
             log.error(`Registering User: ${ex}`);
             return { error: `Registering User`};
@@ -300,7 +313,11 @@ module.exports = {
                 return { "error": "Invalid Password" };
             }
 
-            return { results: { ...findUser }};
+            const token = ("_id" in findUser) ? jwt.sign({ id: findUser._id }, TOKEN_SECRET, {
+                expiresIn: (TOKEN_EXPIRE_DAYS ?? 7) * 86400000
+            }) : null;
+
+            return { results: { user: findUser, token: token }};
         } catch(ex){
             log.error(`Logging In User: ${ex}`);
             return { error: `Logging In User`};
@@ -354,7 +371,11 @@ module.exports = {
                 ret = { ...findUser, ...res };
             }
 
-            return { results: ret };
+            const login_token = ("_id" in ret) ? jwt.sign({ id: ret._id }, TOKEN_SECRET, {
+                expiresIn: (TOKEN_EXPIRE_DAYS ?? 7) * 86400000
+            }) : null;
+
+            return { results: { user: ret, token: login_token } };
         } catch(ex){
             log.error(`G Login User: ${ex}`);
             return { error: `G Login User`};

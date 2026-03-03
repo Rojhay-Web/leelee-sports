@@ -39,22 +39,43 @@ const defaults = {
 const REGISTRATION_QUERY = gql`
 query Registration($email: String!, $password: String!, $firstName: String!, $lastName: String){
     registerUser(email: $email, password: $password, firstName: $firstName, lastName: $lastName){
-        _id
-        email
-        name
-        picture
-        roles
-        scopes
+        token
+        user {    
+            _id
+            email
+            name
+            picture
+            roles
+            scopes
+        }
     }
-}`, LOGIN_QUERY = gql`
+}`, 
+LOGIN_QUERY = gql`
 query Login($email: String!, $password: String!){
     loginUser(email: $email, password: $password){
-        _id
-        email
-        name
-        picture
-        roles
-        scopes
+        token
+        user {
+            _id
+            email
+            name
+            picture
+            roles
+            scopes
+        }
+    }
+}`,
+GOOGLE_LOGIN_QUERY = gql`
+query googleLogin($token: String!){
+    loginGUser(token: $token){
+        token
+        user {
+            email
+            name
+            picture
+            _id
+            roles
+            scopes
+        }
     }
 }`;
 
@@ -68,16 +89,17 @@ function UserAccessModal({ modalShow, closeModal }:AccessModalType){
     const [validForm, setValidForm] = useState({ email:false, password:false, firstName:false, lastName:false});
     const [submitActive, setSubmitActive] = useState(false);
 
-    const { setUser, setUserToken } = useContext(userContext.UserContext) as UserContextType;
+    const { setCredUser } = useContext(userContext.UserContext) as UserContextType;
 
     const [registerUser,{ loading: loading_registration, error: error_registration, data: data_registration }] = useLazyQuery(REGISTRATION_QUERY, {fetchPolicy: 'no-cache'});    
-    const [loginUser,{ loading: loading_login, error: error_login, data: data_login }] = useLazyQuery(LOGIN_QUERY, {fetchPolicy: 'no-cache'});    
+    const [loginUser,{ loading: loading_login, error: error_login, data: data_login }] = useLazyQuery(LOGIN_QUERY, {fetchPolicy: 'no-cache'}); 
+    const [loginGUser,{ loading: loading_g_login, error: error_g_login, data: data_g_login }] = useLazyQuery(GOOGLE_LOGIN_QUERY, {fetchPolicy: 'no-cache'});
 
     const initStart = useRef<{[key:string]: boolean}>({ init: false, email:false, password:false, firstName:false, lastName:false});
     
     const gLogin = useGoogleLogin({
-        onSuccess: (tokenResponse) => { 
-            setUserToken(tokenResponse); 
+        onSuccess: (tokenResponse) => {  
+            loginGUser({ variables: { token: tokenResponse.access_token }});
         },
         onError:(error) => { 
             log.error(`Google Login: ${error}`);
@@ -206,18 +228,28 @@ function UserAccessModal({ modalShow, closeModal }:AccessModalType){
         }
     },[modalShow]);
 
+    // Registration
     useEffect(()=>{
         if(!loading_registration && data_registration?.registerUser){
-            setUser(data_registration.registerUser);
+            setCredUser(data_registration.registerUser?.user, data_registration.registerUser?.token);
         }
     },[loading_registration, data_registration]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Blueprint Login
     useEffect(()=>{
         if(!loading_login && data_login?.loginUser){
-            setUser(data_login.loginUser);
+            setCredUser(data_login.loginUser?.user, data_login.loginUser?.token);
         }
     },[loading_login, data_login]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Google Login
+    useEffect(()=>{
+        if(!loading_g_login && data_g_login?.loginGUser){
+            setCredUser(data_g_login.loginGUser?.user, data_g_login.loginGUser?.token);
+        }
+    },[loading_g_login, data_g_login]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Error Messaging
     useEffect(()=>{
         if(error_registration) {
             toast.error(error_registration?.message, { position: "top-right",
@@ -227,8 +259,12 @@ function UserAccessModal({ modalShow, closeModal }:AccessModalType){
             toast.error(error_login?.message, { position: "top-right",
                 autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
                 draggable: true, progress: undefined, theme: "light" });
+        } else if(error_g_login) {
+            toast.error(error_g_login?.message, { position: "top-right",
+                autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                draggable: true, progress: undefined, theme: "light" });
         }
-    },[error_registration, error_login]);
+    },[error_registration, error_login, error_g_login]);
 
     return(
         <div className="user-access-container">
@@ -317,12 +353,12 @@ function UserAccessModal({ modalShow, closeModal }:AccessModalType){
 }
 
 function AppAccessModal({ closeModal }:AccessModalType){
-    const { user, setUser } = useContext(userContext.UserContext) as UserContextType;
+    const { user, setCredUser } = useContext(userContext.UserContext) as UserContextType;
         
     const signOff = () => {
         try {
             if(window.confirm('Are you sure you want to Sign out?')){
-                setUser(null);  closeModal();
+                setCredUser(null, undefined);  closeModal();
                 localStorage.removeItem(import.meta.env.VITE_APP_SESSION_KEY);
             }
         }

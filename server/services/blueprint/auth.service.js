@@ -1,6 +1,7 @@
 'use strict';
 require('dotenv').config();
 
+const jwt = require("jsonwebtoken");
 const db = require('./db.service'),
     log = require('../log.service');
 
@@ -13,7 +14,13 @@ module.exports = {
                 return { error: "Invalid Token" };
             }
 
-            let usrPermissions = await db.getFullUser(token);
+            let decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+            if (!decoded) {
+                log.error(`Verifing Token [E01]: ${err}`);
+                return { error: "Unauthorized", results: false };
+            }
+
+            let usrPermissions = await db.getFullUser(decoded.id);
             if(usrPermissions?.error){
                 return { error: 'No User Permissions'};
             }

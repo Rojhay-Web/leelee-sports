@@ -25,11 +25,9 @@ export class User {
     }
 }
 
-
 export type UserContextType = {
-    user: User | null; setUser: Dispatch<SetStateAction<User|null>>;
-    userToken: any | null; setUserToken: Dispatch<SetStateAction<any|null>>;
-    loading: Boolean | null; loading_permissions: Boolean | null;
+    user: User | null; token?: string;
+    setCredUser: (user: User | null, token:string | undefined) => void;
     activeComponents: any; activeRoles: { [key: string]: any };
     adminComponents: AdminPathType[];
 }

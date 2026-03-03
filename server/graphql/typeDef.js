@@ -8,10 +8,10 @@ module.exports = gql`
         user(_id: String!):User
         searchUsers(query:String, role: String, sortType: String, sortAsc: Boolean, page:Int, pageSize: Int): PagedUsers
 
-        registerUser(email: String!, password: String!, firstName: String!, lastName: String):User
-        loginUser(email: String!, password: String!):User
+        registerUser(email: String!, password: String!, firstName: String!, lastName: String):UserAccess
+        loginUser(email: String!, password: String!):UserAccess
 
-        loginGUser(token: String!):User
+        loginGUser(token: String!):UserAccess
 
         sitePages:[SitePage]
         sitePage(key: String!):SitePage
@@ -104,6 +104,11 @@ module.exports = gql`
     type ContentKey {
         key: String
         pageKey: PageKey
+    }
+
+    type UserAccess {
+        user: User
+        token: String
     }
 
     type User {
