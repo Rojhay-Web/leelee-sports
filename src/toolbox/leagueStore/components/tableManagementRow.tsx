@@ -78,10 +78,13 @@ export default function TableManagementModalRow<P>({ field, item, setItem }:Tabl
 
     const toggleValue = () => {
         const toggleValue = item && !!item[field.key] ? false: true;
-        setItemDetails({ target: { name: field.key, value: toggleValue }})
+        setItemDetails({ target: { name: field.key, value: toggleValue }});
     }
 
-    const toggleSelect = (selection: any, add: boolean) => {}
+    const toggleSelect = (selection: any, add: boolean) => {
+        setItemDetails({ target: { name: field.key, value: add ? selection : null }});
+    }
+
     const displayCustomDropdown = (value: string) => {
         return <div className="select-icon">
                     <span className="icon material-symbols-outlined">{value}</span>
@@ -165,10 +168,11 @@ export default function TableManagementModalRow<P>({ field, item, setItem }:Tabl
                 {(field.type === 'g_icon_select') &&
                     <Multiselect
                         isObject={false}
+                        closeOnSelect
                         className="icon-select-dropdown"
                         selectionLimit={1}
                         options={iconList ?? []}
-                        selectedValues={(item ? [item[field.key]] : null)}
+                        selectedValues={((item && item[field.key]) ? [item[field.key]] : [])}
                         placeholder={`Select ${field.title}`}
                         onSelect={(_: any, selectedItem: any) => toggleSelect(selectedItem, true)}
                         onRemove={(_: any, selectedItem: any) => toggleSelect(selectedItem, false)}

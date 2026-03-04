@@ -12,23 +12,24 @@ import { AdminPathType, CtrlContainerType, MobileNavType, UserContextType } from
 import { log } from "../../utils/log";
 import { checkUserRoles } from "../../utils";
 
+import leeLee_logo from '../../assets/logo/logo_kiddz3.png';
+
 // Pages
 // import LeagueLanding from "./pages/landing";
 import SportEditor from "./pages/sportEditor";
-
-import leeLee_logo from '../../assets/logo/logo_kiddz3.png';
+import StoreManager from "./pages/storeManager";
 
 export const leagueStoreComponents: AdminPathType[] = [
     { title: "League Sports", scope:"", icon:"sports", path:"league_sports", element: SportEditor },
-    
+    { title: "Store Manager", scope:"", icon:"warehouse", path:"store_manager", element: StoreManager },
 ];
+
+const basePath = '/toolbox/leaguestore';
 
 /* Menu Panel */
 function CtrlContainer({ displayComponents, selComponent, query, navOpen, openNav, pressEvent, searchQuery }: CtrlContainerType){
     const { user, setCredUser } = useContext(userContext.UserContext) as UserContextType;
     const navigate = useNavigate();
-
-    const basePath = '/toolbox/leaguestore';
 
     const signOff = () => {
         try {
@@ -153,7 +154,7 @@ export default function LeagueStoreLayout(){
         let ret = { icon: "store", title:"League Store Admin" };
             
         try {
-            const filterComp = leagueStoreComponents.filter((ac: AdminPathType) => { return `/allaccess/${ac.path}` === selComponent; });
+            const filterComp = leagueStoreComponents.filter((ac: AdminPathType) => { return `${basePath}/${ac.path}` === selComponent; });
 
             if(selComponent?.length > 0 && filterComp?.length > 0) {
                 ret = { icon: filterComp[0].icon, title:filterComp[0].title };

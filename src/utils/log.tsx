@@ -1,5 +1,5 @@
 import { LOG_INGESTION_HOST, LOG_TOKEN } from './index';
-const logtail = true;
+const logtail = false;
 
 export const log = {
     error: function(msg: string, additional_data?: any){

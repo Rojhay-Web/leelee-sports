@@ -1,8 +1,9 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { gql, useQuery, useMutation } from '@apollo/client';
 import Rodal from "rodal";
 import parse from 'html-react-parser';
 import * as _ from 'lodash';
+import { toast } from "react-toastify";
 
 import { handleGQLError } from "../../../utils";
 import { adminSideModalStyle } from "../../../utils/_customUtils";
@@ -17,6 +18,10 @@ query GetLeagueSports{
       description
       active
     }
+}`,
+UPSERT_SPORT_MUTATION = gql`
+mutation upsertSport($id: String, $title: String, $icon: String, $description: String, $active: Boolean){
+    upsertSport(id: $id, title: $title, icon: $icon, description: $description, active: $active)
 }`;
 
 // Types
@@ -44,9 +49,39 @@ function SportEditorModal({ selectedSport, modalStatus, setModalStatus, setSelec
         ]
     }
 
+    const [upsertSport,{ loading: upsert_loading, data: upsert_data, error: upsert_error }] = useMutation(UPSERT_SPORT_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
+        
     const closeModal = () => {
         setModalStatus(false); 
         setSelectedSport(undefined);
+    }
+
+    const saveSport = () => {
+        try {
+            if(!editSport?.title){
+                toast.warning(`Check Title is set for this sport before ${(editSport?._id ? 'Updating' : 'Creating')}`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            } else {
+                upsertSport({
+                    variables:{
+                        id: editSport?._id ?? undefined,
+                        title: editSport?.title,
+                        description: editSport?.description,
+                        icon: editSport?.icon,
+                        active: editSport?.active,
+                    }
+                });
+            }
+        } catch(ex){
+            log.error(`Saving Sport: ${ex}`);
+        }
+    }
+
+    const deleteSport = () => {
+        if(editSport?._id && window.confirm("Are you sure you want to delete this sport?")){
+            // removeSport({variables: {_id: editUser._id}});
+        }
     }
 
     useEffect(()=>{ 
@@ -64,6 +99,24 @@ function SportEditorModal({ selectedSport, modalStatus, setModalStatus, setSelec
             log.error(`Checking Edit Progress: ${ex}`);
         }
     }, [editSport]);
+
+    useEffect(()=>{ 
+        if(!upsert_loading ){
+            if(upsert_error){
+                // const errorMsg = JSON.stringify(upsert_error, null, 2);
+
+                toast.error(`Error ${(editSport?._id ? 'Updating' : 'Creating')} This Sport: ${upsert_error.message}`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            } else if(upsert_data?.upsertSport){
+                closeModal();
+                toast.success(`${(editSport?._id ? 'Updated This' : 'Created New')} Sport`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[upsert_loading, upsert_data, upsert_error]);
 
     return(
         <Rodal className="user-management-editor-modal" 
@@ -93,6 +146,27 @@ function SportEditorModal({ selectedSport, modalStatus, setModalStatus, setSelec
                         );
                     })}
                 </div>
+
+                <div className='editor-actions-container'>
+                    <div className='button-list'>
+                        <button className='list-btn save' disabled={upsert_loading || !inProgress} onClick={saveSport}>
+                            {upsert_loading ? 
+                                <div className='btn-icon loader'>
+                                    <l-spiral size="14" speed="0.9" color="#fff" />
+                                </div> :
+                                <span className="btn-icon material-symbols-outlined">save</span>
+                            }
+                            <span className='btn-text'>Save</span>
+                        </button>
+
+                        {(editSport?._id !== undefined ) &&
+                            <button className='list-btn delete' onClick={deleteSport}>
+                                <span className="btn-icon material-symbols-outlined">delete_forever</span>
+                                <span className='btn-text'>Delete Sport</span>
+                            </button>
+                        }
+                    </div>
+                </div>
             </div>
         </Rodal>
     );
@@ -103,7 +177,16 @@ export default function SportEditor(){
     const [selSport, setSelSport] = useState<LeagueSportType | undefined>(undefined);
     const [modalStatus, setModalStatus] = useState(false);
 
-    const { loading, data, refetch }= useQuery(GET_SPORTS_QUERY, {fetchPolicy: 'no-cache', onError: handleGQLError});
+    const { loading, data, refetch }= useQuery(GET_SPORTS_QUERY, {fetchPolicy: 'no-cache' });
+
+    const pageRender = useRef(false);
+    
+    useEffect(()=>{ 
+       if(!modalStatus && pageRender?.current) {
+           refetch();
+       }
+       pageRender.current = true;
+    },[modalStatus]);
 
     return (
         <>
@@ -122,7 +205,7 @@ export default function SportEditor(){
                     {loading ?
                         <>Loading...</> :
                         <>
-                            {data.sports.map((sport: LeagueSportType, i: number) => 
+                            {data?.sports.map((sport: LeagueSportType, i: number) => 
                                 <div className={`sport-tile ${sport?.active ? '' : 'inactive'}`} key={i} onClick={()=>{ setSelSport(sport)}}>
                                     <div className="edit-icon">
                                         <span className="material-symbols-outlined">edit_note</span>
