@@ -1,41 +1,40 @@
 import { useContext, useEffect, useState } from "react";
-import { Sheet } from 'react-modal-sheet';
 import { Link, useLocation, useNavigate  } from "react-router-dom";
+import { Sheet } from 'react-modal-sheet';
 
 import { Outlet } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import miles_logo from "../../../assets/logo/miles_logo.png";
-import userContext from "../../../context/user.context";
+import userContext from "../../context/user.context";
 
-import { AdminPathType, UserContextType, CtrlContainerType, MobileNavType } from "../../../datatypes";
-import { log } from "../../../utils/log";
-import { checkUserRoles } from "../../../utils";
+import { AdminPathType, CtrlContainerType, MobileNavType, UserContextType } from "../../datatypes";
+import { log } from "../../utils/log";
+import { checkUserRoles } from "../../utils";
 
-function NavContainer({ displayComponents, selComponent, query, pressEvent, searchQuery }: CtrlContainerType){
-    const [openNav, setOpenNav] = useState(false);
+// Pages
+// import LeagueLanding from "./pages/landing";
+import SportEditor from "./pages/sportEditor";
 
-    return(
-        <div className={`ctrl-panel side-panel ${(openNav ? '': 'mini')}`}>
-            <div className="panel-controller" onClick={()=>{ setOpenNav((d)=> { return !d; }); }}>
-                <span className="material-symbols-outlined">{(!openNav ? 'chevron_right' : 'chevron_left')}</span>
-            </div>
-            <CtrlContainer displayComponents={displayComponents} selComponent={selComponent} 
-                navOpen={openNav} openNav={()=>{ setOpenNav(true) }} query={query} searchQuery={searchQuery} />
-        </div>
-    );
-}
+import leeLee_logo from '../../assets/logo/logo_kiddz3.png';
 
+export const leagueStoreComponents: AdminPathType[] = [
+    { title: "League Sports", scope:"", icon:"sports", path:"league_sports", element: SportEditor },
+    
+];
+
+/* Menu Panel */
 function CtrlContainer({ displayComponents, selComponent, query, navOpen, openNav, pressEvent, searchQuery }: CtrlContainerType){
     const { user, setCredUser } = useContext(userContext.UserContext) as UserContextType;
     const navigate = useNavigate();
+
+    const basePath = '/toolbox/leaguestore';
 
     const signOff = () => {
         try {
             if(window.confirm('Are you sure you want to Sign out?')){
                 linkOnPress(); setCredUser(null, undefined);
-
+                
                 localStorage.removeItem(import.meta.env.VITE_APP_SESSION_KEY);
                 navigate('/');
             }
@@ -59,9 +58,9 @@ function CtrlContainer({ displayComponents, selComponent, query, navOpen, openNa
         <div className="panel-container">
             <div className="side-title">
                 <div className="title-icon">
-                    <img src={miles_logo} alt="Miles Web Editor" />
+                    <img src={leeLee_logo} alt="Lee Lee Kiddz League Store Editor" />
                 </div>
-                <span className="title-txt">Miles</span>
+                <span className="title-txt">League Store Editor</span>
             </div>
 
             <div className="side-search">
@@ -73,7 +72,7 @@ function CtrlContainer({ displayComponents, selComponent, query, navOpen, openNa
 
             <div className="component-list-container">
                 {displayComponents.map((item: AdminPathType, i:number)=>
-                    <Link to={`/allaccess/${item.path}`} className={`component-item ${selComponent === `/allaccess/${item.path}` ? 'sel':''}`} onClick={linkOnPress} key={i} title={item.title}>
+                    <Link to={`${basePath}/${item.path}`} className={`component-item ${selComponent === `${basePath}/${item.path}` ? 'sel':''}`} onClick={linkOnPress} key={i} title={item.title}>
                         <span className="material-symbols-outlined">{item.icon}</span>
                         <span className="item-title">{item.title}</span>
                     </Link>
@@ -96,6 +95,20 @@ function CtrlContainer({ displayComponents, selComponent, query, navOpen, openNa
     );
 }
 
+function NavContainer({ displayComponents, selComponent, query, pressEvent, searchQuery }: CtrlContainerType){
+    const [openNav, setOpenNav] = useState(false);
+
+    return(
+        <div className={`ctrl-panel side-panel ${(openNav ? '': 'mini')}`}>
+            <div className="panel-controller" onClick={()=>{ setOpenNav((d)=> { return !d; }); }}>
+                <span className="material-symbols-outlined">{(!openNav ? 'chevron_right' : 'chevron_left')}</span>
+            </div>
+            <CtrlContainer displayComponents={displayComponents} selComponent={selComponent} 
+                navOpen={openNav} openNav={()=>{ setOpenNav(true) }} query={query} searchQuery={searchQuery} />
+        </div>
+    );
+}
+
 function MobileNav({ isOpen, displayComponents, selComponent, query, searchQuery, setOpen }: MobileNavType){
     return(
         <div className="mobile-nav-container">
@@ -114,15 +127,16 @@ function MobileNav({ isOpen, displayComponents, selComponent, query, searchQuery
     );
 }
 
-function AdminLayout(){
+export default function LeagueStoreLayout(){
     const [query, setQuery] = useState("");
     const [displayComponents, setDisplayComponents] = useState<any>([]);
     const [selComponent, setSelComponent] = useState("");
-    const [mobileNavOpen, setMobileNavOpen] = useState(false);
-    const [header, setHeader] = useState({ icon: "shield_person", title:"Admin Portal" });
 
-    const { user, activeComponents } = useContext(userContext.UserContext) as UserContextType;
-    
+    const [header, setHeader] = useState({ icon: "store", title:"League Store Admin" });
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+    const { user } = useContext(userContext.UserContext) as UserContextType;
+        
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -136,10 +150,10 @@ function AdminLayout(){
     }
 
     const getHeaderTitle = () => {
-        let ret = { icon: "shield_person", title:"Admin Portal" };
+        let ret = { icon: "store", title:"League Store Admin" };
             
         try {
-            const filterComp = activeComponents.filter((ac: AdminPathType) => { return `/allaccess/${ac.path}` === selComponent; });
+            const filterComp = leagueStoreComponents.filter((ac: AdminPathType) => { return `/allaccess/${ac.path}` === selComponent; });
 
             if(selComponent?.length > 0 && filterComp?.length > 0) {
                 ret = { icon: filterComp[0].icon, title:filterComp[0].title };
@@ -153,39 +167,44 @@ function AdminLayout(){
     }
 
     useEffect(()=>{
-        let filterList = activeComponents.filter((comp: AdminPathType) => {
+        let filterList = leagueStoreComponents.filter((comp: AdminPathType) => {
             const hasQuery = comp.title.toLowerCase().indexOf(query.toLowerCase()) >= 0;
             return hasQuery;
         });
 
         setDisplayComponents(filterList);
-    },[activeComponents, query]);
+    },[leagueStoreComponents, query]);
 
     useEffect(()=>{ 
         getHeaderTitle(); 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[selComponent, activeComponents]);
+    },[selComponent, leagueStoreComponents]);
 
-    // TODO: Change selComponent on route change
     useEffect(()=>{
         setSelComponent(location?.pathname ?? "")
     },[location?.pathname]);
 
-    if(!checkUserRoles(user?.roles, ['ADMIN'])){
-        navigate("/");
-        return(<div className="redirecting-page"><h1>Redirecting...</h1></div>);
+    if(!checkUserRoles(user?.roles, ['LEAGUE_STORE_ADMIN'])){
+        navigate("/toolbox");
+        return(
+            <div className="redirecting-page">
+                <span>Sorry you don't have access to this tool</span>
+                <h1>Redirecting...</h1>
+            </div>
+        );
     }
 
-    return (
+    return(
         <div className='app-body'>
             <ToastContainer />
-            
-            <div className="admin-home-page">
+
+            <div className="admin-home-page league-store-admin">
                 <MobileNav displayComponents={displayComponents} selComponent={selComponent} 
                     query={query} searchQuery={searchQuery} 
                     isOpen={mobileNavOpen} setOpen={setMobileNavOpen} />
                 <NavContainer displayComponents={displayComponents} selComponent={selComponent} 
                     query={query} searchQuery={searchQuery} />
+
                 <div className="base-section">
                     <div className="base-header">
                         <span className="material-symbols-outlined mobile-btn" onClick={()=> { setMobileNavOpen(!mobileNavOpen); }}>widgets</span>
@@ -194,10 +213,17 @@ function AdminLayout(){
                             <span className="h1-title-text">{header.title}</span>
                         </h1>
 
-                        <Link className="app-link bookend header-btn" to="/">
-                            <span className="material-symbols-outlined">captive_portal</span>
-                            <span className="header-title">Website</span>
-                        </Link>
+                        <div className="app-link-bookend-container">
+                            <Link className="app-link header-btn" to="/leaguestore">
+                                <span className="material-symbols-outlined">shopping_cart</span>
+                                <span className="header-title">League Store</span>
+                            </Link>
+
+                            <Link className="app-link alt header-btn" to="/">
+                                <span className="material-symbols-outlined">captive_portal</span>
+                                <span className="header-title">Website</span>
+                            </Link>
+                        </div>
                     </div>
 
                     <Outlet />
@@ -206,5 +232,3 @@ function AdminLayout(){
         </div>
     );
 }
-
-export default AdminLayout;

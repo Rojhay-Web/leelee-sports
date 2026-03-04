@@ -3,7 +3,9 @@ const { ObjectId } = require('mongodb');
 
 const log = require('../log.service');
 const util = require('../../utils/util');
+
 const { dbClient: client } = require('../blueprint/db.service');
+const gIconList = require('../../utils/google_icon_list.json');
 
 const { DatabaseName } = process.env;
 
@@ -12,6 +14,19 @@ const appTables = {
 };
 
 module.exports = {
+    getGoogleIcons: async function(query=''){
+        try {
+            const retList = gIconList.filter((g) => {
+                const dynamicRegex = new RegExp(query, 'i');
+                return query?.length === 0 || dynamicRegex.test(g.name);
+            }).sort((a,b) => b.popularity - a.popularity);
+
+            return { results: retList };
+        } catch(ex){
+            log.error(`Getting Google Icon List: ${ex}`);
+            return { 'error': 'Getting Google Icon List [E00]'};
+        }
+    },
     getAppTable: async function(table){
         try {
             if(!(table in appTables)){

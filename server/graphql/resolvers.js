@@ -173,6 +173,14 @@ module.exports = function (localStore) {
                 return ret;
             },
 
+            /* Google Icon */
+            googleIcons: async(_obj, args, _context, _info) => {
+                let ret = await ls_db.getGoogleIcons(args?.query);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+
             /* Leagues */
             sports: async(_obj, _args, _context, _info) => {
                 let ret = await ls_db.getAppTable("league_sports");

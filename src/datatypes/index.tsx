@@ -32,6 +32,20 @@ export type UserContextType = {
     adminComponents: AdminPathType[];
 }
 
+export type CtrlContainerType = {
+    displayComponents: any, selComponent: string,
+    query: string, navOpen?:boolean,
+    openNav?:() => void,
+    searchQuery: (e: any)=> void,
+    pressEvent?: () => void
+}
+
+export type MobileNavType = {
+    displayComponents: any, selComponent: string,
+    query: string, searchQuery: (e: any)=> void, 
+    isOpen: boolean, setOpen:(a:any) => void
+};
+
 export type UserManagementDetailsFieldsType = { 
     icon?: string;
     title: string;

@@ -14,25 +14,29 @@ import { AdminPathType, UserContextType } from "./datatypes";
 /* Context */
 import userContext from "./context/user.context";
 
-/* Layouts */
-import Layout from "./core/components/layout";
-import AdminLayout from "./admin/components/blueprint/adminLayout";
-
 /* Admin Pages */
+import AdminLayout from "./admin/components/blueprint/adminLayout";
 import AdminHome from "./admin/pages/blueprint/adminHome";
 
 /* Core Pages */
+import Layout from "./core/layout";
 import NoMatch from "./core/pages/nomatch";
 import Home from "./core/pages/home";
 
-import { checkUserRole } from "./utils";
+/* Toolbox */
+import ToolBoxLayout from "./toolbox/layout";
+import ToolBoxLanding from "./toolbox/landing";
+
+/* League Store */
+import LeagueStoreLayout, { leagueStoreComponents } from "./toolbox/leagueStore/layout";
+import LeagueLanding from "./toolbox/leagueStore/pages/landing";
 
 const paths = [
     { path: "*", element: NoMatch }
 ];
 
 function SiteRoutes(){
-    const { user, activeComponents } = useContext(userContext.UserContext) as UserContextType;
+    const { activeComponents } = useContext(userContext.UserContext) as UserContextType;
 
     const router = createBrowserRouter(
         createRoutesFromElements(
@@ -46,12 +50,26 @@ function SiteRoutes(){
                 </Route>
 
                 {/* Admin Routes */ }
-                <Route path="/allaccess" element={(checkUserRole('ADMIN', user?.roles) ? <AdminLayout /> : <Layout />)}>
-                    <Route index element={(checkUserRole('ADMIN', user?.roles) ? <AdminHome /> : <NoMatch />)} />
+                <Route path="/allaccess" element={<AdminLayout />}>
+                    <Route index element={<AdminHome />} />
                     {activeComponents?.map((art: AdminPathType, i:number) =>
-                        <Route path={art.path} element={(checkUserRole('ADMIN', user?.roles) ? <art.element />: <NoMatch />)} key={i} />
+                        <Route path={art.path} element={<art.element />} key={i} />
                     )}
                     <Route path="*" element={<NoMatch />} />
+                </Route>
+
+                {/* Toolbox */}
+                <Route path="/toolbox" element={<ToolBoxLayout />}>
+                    <Route index element={<ToolBoxLanding /> } />
+                    {/* League Store */}
+                    <Route path="leaguestore" element={<LeagueStoreLayout />}>
+                        <Route index element={<LeagueLanding /> } />
+
+                        {leagueStoreComponents?.map((art: AdminPathType, i:number) =>
+                            <Route path={art.path} element={<art.element />} key={i} />
+                        )}
+                        <Route path="*" element={<NoMatch />} />
+                    </Route>
                 </Route>
             </>
         ));

@@ -686,7 +686,7 @@ function UserManagementModal({ modalStatus, setModalStatus, multiLists, roleFilt
             const tmpEditType = (selUser?._id !== undefined) ? 'ACTIVE_SELECT' : 'NEW';
 
             setModalStatus(true);
-            setEditUser({..._.cloneDeep(selUser)});
+            setEditUser(_.cloneDeep(selUser));
             setEditType(tmpEditType);
         }
     },[selUser, detailsConfig]);

@@ -187,6 +187,17 @@ export const checkUserRole = (role:string, roles?:string[], ) =>{
     return ret;
 }
 
+export const checkUserRoles = (userRoles:string[] | undefined, roles:string[]) =>{
+    let ret = false;
+    try {
+        ret = userRoles != undefined && userRoles.some(element => roles.includes(element))
+    } catch(ex){
+        log.error(`Checking All User Roles: ${ex}`);
+    }
+
+    return ret;
+}
+
 /* Private Functions*/
 function validateDate(value: string, required=true){
     let ret = false;

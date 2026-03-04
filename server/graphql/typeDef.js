@@ -31,6 +31,8 @@ module.exports = gql`
         querySiteForms(query:String, page:Int, pageSize: Int): PagedForm
         submittedFormData(type: String!, id: String!, parentId: String, page:Int, pageSize: Int):PagedFormData
 
+        googleIcons(query: String): [GoogleIcon]
+
         sports: [LeagueSports]
         storeConfigs(key: String): [LeagueStoreConfig]
         leagueLocations: [LeagueLocations]
@@ -237,6 +239,12 @@ module.exports = gql`
         form_parent_id: String
         form_data: JSONObj
         timestamp: Date
+    }
+
+    type GoogleIcon {
+        name: String
+        popularity: Int
+        categories: [String]
     }
 
     type LeagueSports {

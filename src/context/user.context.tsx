@@ -1,4 +1,4 @@
-import { createContext, useEffect, useRef, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 
 import { UserContextType, User, AdminPathType } from '../datatypes';
 import { buildToken, parseToken } from "../utils";
@@ -23,7 +23,7 @@ function Provider({ children }: { children: any }) {
 
     const [activeRoles] = useState({
         'ADMIN': { title:'Site Admin', key: 'ADMIN', colorTheme: '235,17,20' },
-        'LEAGUE_STORE_ADMIN': { title:'League Store Admin', key: 'LEAGUE_STORE_ADMIN', colorTheme: '243,193,15' },
+        'LEAGUE_STORE_ADMIN': { title:'League Store Admin', key: 'LEAGUE_STORE_ADMIN', colorTheme: '186,142,35' },
     });
 
     const adminComponents: AdminPathType[] = [
