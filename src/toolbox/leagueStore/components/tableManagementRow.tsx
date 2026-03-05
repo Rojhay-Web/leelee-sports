@@ -1,10 +1,11 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import Multiselect from "multiselect-react-dropdown";
 import { gql, useLazyQuery } from '@apollo/client';
+import * as _ from 'lodash';
 
 import { log } from "../../../utils/log";
 import { formatDate } from "../../../utils";
-import { GoogleIcons } from "../../../datatypes/customDT";
+import { GoogleIcons, LeagueStoreAddon } from "../../../datatypes/customDT";
 
 // GQL
 const GET_ICONS_QUERY = gql`
@@ -20,6 +21,7 @@ export type TableManagementDetailsFieldsType<P> = {
     key: keyof P;
     type: string;
     net_new_active?:boolean;
+    title_vert_set?:boolean;
     conditional_fields?:(keyof P)[];
 }
 
@@ -31,6 +33,172 @@ export type TableManagementModalRowType<P> = {
 
 export type TableManagementDetailsConfigType<P> = {
     fields: TableManagementDetailsFieldsType<P>[];
+}
+
+export type StringDrillDownInputType = {
+    fieldKey: string,
+    fieldValue?: string[],
+    setItemValue: (e:any) => void
+}
+
+export type AddOnDrillDownInputType = {
+    fieldKey: string,
+    fieldValue?: LeagueStoreAddon[],
+    setItemValue: (e:any) => void
+}
+
+function AddOnDrillDownInput({ fieldKey, fieldValue, setItemValue }: AddOnDrillDownInputType){
+    const [openToggle, setOpenToggle] = useState(false);
+
+    const handleTextChange = (e: any, idx: number) => {
+        try {
+            let tmpFieldVal = _.cloneDeep(fieldValue);
+
+            if(tmpFieldVal && idx < tmpFieldVal?.length){
+                const name: keyof LeagueStoreAddon = e.target.name;
+
+                tmpFieldVal[idx][name] = e.target.value;
+                setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+            }
+        } catch(ex) {
+            log.error(`Handing Text Change: ${ex}`);
+        }
+    }
+
+    const deleteItem = (idx: number) => {
+        try {
+            let tmpFieldVal = _.cloneDeep(fieldValue);
+
+            if(tmpFieldVal && idx < tmpFieldVal?.length){
+                tmpFieldVal.splice(idx, 1); 
+                setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+            }
+        } catch(ex) {
+            log.error(`Handing Text Change: ${ex}`);
+        }
+    }
+
+    const addItem = () => {
+        try {
+            let tmpFieldVal = fieldValue ? _.cloneDeep(fieldValue) : [];
+            tmpFieldVal.push(new LeagueStoreAddon());
+
+            setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+        } catch(ex) {
+            log.error(`Handing Text Change: ${ex}`);
+        }
+    }
+
+    return(
+        <div className="str-drill-down-container">
+            <div className="header-container">
+                <div className="header-text">{fieldValue?.length} item(s)</div>
+                <span className="icon material-symbols-outlined" onClick={()=> setOpenToggle(p => !p)}>{openToggle ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+            </div>
+            
+            {openToggle && 
+                <div className="drill-list-container">
+                    {fieldValue?.map((val, i) => 
+                        <div className="drill-list-item" key={i}>
+                            <div className="item-multi-edit-container">
+                                <div className="item-edit-field sz-5">
+                                    <span className="field-title">Title</span>
+                                    <input type="text" name="title" value={val?.title} onChange={(e)=>{ handleTextChange(e, i)}} autoComplete="off" />
+                                </div>
+                                <div className="item-edit-field sz-2">
+                                    <span className="field-title">Min</span>
+                                    <input type="number" name="minimum" min="0" step="1" value={val?.minimum} onChange={(e)=>{ handleTextChange(e, i)}} autoComplete="off" />
+                                </div>
+                                <div className="item-edit-field sz-3">
+                                    <span className="field-title">Price Per</span>
+                                    <input type="number" name="price" min="0" step="0.01" value={val?.price} onChange={(e)=>{ handleTextChange(e, i)}} autoComplete="off" />
+                                </div>
+                            </div>
+
+                            <button onClick={()=>{ deleteItem(i) }}>
+                                <span className="material-symbols-outlined">delete</span>
+                            </button>
+                        </div>
+                    )}
+                    <button className="add-btn" onClick={addItem}>
+                        <span className="icon material-symbols-outlined">add_circle</span>
+                        <span className="add-title">Add Addon</span>
+                    </button>
+                </div>
+            }
+        </div>
+    )
+}
+
+function StringDrillDownInput({ fieldKey, fieldValue, setItemValue }: StringDrillDownInputType){
+    const [openToggle, setOpenToggle] = useState(false);
+
+    const handleTextChange = (e: any, idx: number) => {
+        try {
+            let tmpFieldVal = _.cloneDeep(fieldValue);
+
+            if(tmpFieldVal && idx < tmpFieldVal?.length){
+                tmpFieldVal[idx] = e.target.value;
+                setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+            }
+        } catch(ex) {
+            log.error(`Handing Text Change: ${ex}`);
+        }
+    }
+
+    const deleteItem = (idx: number) => {
+        try {
+            let tmpFieldVal = _.cloneDeep(fieldValue);
+
+            if(tmpFieldVal && idx < tmpFieldVal?.length){
+                tmpFieldVal.splice(idx, 1); 
+                setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+            }
+        } catch(ex) {
+            log.error(`Handing Text Change: ${ex}`);
+        }
+    }
+
+    const addItem = () => {
+        try {
+            let tmpFieldVal = fieldValue ? _.cloneDeep(fieldValue) : [];
+            tmpFieldVal.push('');
+
+            setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+        } catch(ex) {
+            log.error(`Handing Text Change: ${ex}`);
+        }
+    }
+
+    return(
+        <div className="str-drill-down-container">
+            <div className="header-container">
+                <div className="header-text">{fieldValue?.length} item(s)</div>
+                <span className="icon material-symbols-outlined" onClick={()=> setOpenToggle(p => !p)}>{openToggle ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+            </div>
+            
+            {openToggle && 
+                <div className="drill-list-container">
+                    {fieldValue?.map((val, i) => 
+                        <div className="drill-list-item" key={i}>
+                            <div className="item-edit-container">
+                                <span className="material-symbols-outlined">reorder</span>
+                                <input type="text" name="value" value={val} onChange={(e)=>{ handleTextChange(e, i)}} autoComplete="off" />
+                            </div>
+
+                            <button onClick={()=>{ deleteItem(i) }}>
+                                <span className="material-symbols-outlined">delete</span>
+                            </button>
+                        </div>
+                    )}
+                    <button className="add-btn" onClick={addItem}>
+                        <span className="icon material-symbols-outlined">add_circle</span>
+                        <span className="add-title">Add Item</span>
+                    </button>
+                </div>
+            }
+        </div>
+    )
 }
 
 export default function TableManagementModalRow<P>({ field, item, setItem }:TableManagementModalRowType<P>){
@@ -108,7 +276,7 @@ export default function TableManagementModalRow<P>({ field, item, setItem }:Tabl
 
     return(
         <div className='field-item-row'>
-            <div className='field-title'>
+            <div className={`field-title ${field?.title_vert_set ? 'top' : ''}`}>
                 <span className="field-icon material-symbols-outlined">{field.icon ?? 'radio_button_unchecked'}</span>
                 <span className='field-title-text'>{field.title}</span>
             </div>
@@ -121,6 +289,11 @@ export default function TableManagementModalRow<P>({ field, item, setItem }:Tabl
                 {/* Text String */}
                 {(field.type === 'text') &&
                     <input className='text-input' type="text" name={dynamicKey} placeholder={`Enter ${field.title}`} value={dynamicValue} onChange={setItemDetails} />
+                }
+
+                {/* Number String */}
+                {(field.type === 'number') &&
+                    <input className='text-input' type="number" name={dynamicKey} min="0" step="1" placeholder={`Enter ${field.title}`} value={dynamicValue} onChange={setItemDetails} />
                 }
 
                 {/* Description String */}
@@ -188,6 +361,20 @@ export default function TableManagementModalRow<P>({ field, item, setItem }:Tabl
                                 borderRadius: '8px'
                             }
                         }}
+                    />
+                }
+
+                {/* String Drill Down List */}
+                {(field.type === 'string_drill_down_list') &&
+                    <StringDrillDownInput setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={((item && item[field.key]) ? item[field.key] as string[] : [])}  
+                    />
+                }
+
+                {/* String Drill Down List */}
+                {(field.type === 'addon_drill_down_list') &&
+                    <AddOnDrillDownInput setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={((item && item[field.key]) ? item[field.key] as LeagueStoreAddon[] : [])}  
                     />
                 }
             </div>

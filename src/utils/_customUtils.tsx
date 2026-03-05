@@ -24,3 +24,17 @@ export const formatDateV2 = (date: Date | undefined, format: string) => {
     
     return ret;
 }
+
+export const hasDuplicatesByKey = (arr:any[], key:any) => {
+  const uniqueKeys = new Set();
+  for (const item of arr) {
+    const value = item[key];
+    // If the Set already has the value, it's a duplicate
+    if (uniqueKeys.has(value)) {
+      return true; 
+    }
+    // Otherwise, add the value to the Set
+    uniqueKeys.add(value);
+  }
+  return false; // No duplicates found after checking all items
+};

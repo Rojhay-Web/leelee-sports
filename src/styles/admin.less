@@ -3209,7 +3209,7 @@
         .user-management-editor-container {
             font-family: 'Parkinsans', serif;
             display: flex; flex-direction: column;
-            flex: 1;
+            flex: 1; overflow-y: hidden;
             .header-row {
                 margin-bottom: 2rem;
                 span { font-weight: bold; font-family: "Jost", sans-serif; }
@@ -3256,7 +3256,7 @@
 
             .field-list-container {
                 display: flex; flex-direction: column;
-                flex: 1; overflow-y: auto;
+                flex: 1; overflow-y: auto; margin-bottom: 16px;
 
                 .field-item-row {
                     padding: 16px 0; border-bottom: 1px solid @admin-color3;
@@ -3270,10 +3270,12 @@
                         .field-icon { margin-right: 4px; }
                         .field-title-text { font-size: 1rem; }
                         span { display: flex; flex-direction: column; justify-content: center;}
+
+                        &.top { margin-bottom: auto; }
                     }
 
                     .field-content {
-                        flex: 1;
+                        flex: 1; overflow: hidden;
                         .text-input {
                             border: 2px solid; border-radius: 8px;
                             .admin-color3(border-color, 0.7);
