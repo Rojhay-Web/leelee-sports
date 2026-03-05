@@ -242,6 +242,25 @@
     }
 }
 
+.league-store-table-cell {
+    display: flex; flex-direction: column;
+    padding: 12px;
+
+    .table-title {
+        h2 { margin: 0; }
+    }
+}
+
+.ls-management-table-container {
+    border-color: @league-store-c2 !important;
+    margin-top: 0 !important;
+    th {
+        border-color: @league-store-c2 !important;
+        padding: 4px 8px !important;
+        &::before { .league-store-c2(background-color, 0.2); }
+    }
+}
+
 /* Field Item Rows */
 .field-item-row {
     .str-drill-down-container {

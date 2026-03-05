@@ -14,6 +14,14 @@ export type LeagueStoreUIConfigType = {
     }
 }
 
+export type LeagueStoreMerchantInfo = {
+    title: string;
+    subText: string;
+    defaultLogo: string;
+
+    store_id: string;
+}
+
 // Classes
 export class LeagueSportType {
     _id?: string;
@@ -49,6 +57,14 @@ export class LeagueStoreConfigType {
     category?: string;
     categorySet?: string[];
     addons?: LeagueStoreAddon[];
+
+    constructor(){}
+}
+
+export class LeagueLocationsType {
+    _id?:string;
+    name?: string;
+    merchantInfo?:LeagueStoreMerchantInfo[];
 
     constructor(){}
 }
