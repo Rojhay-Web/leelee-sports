@@ -1,11 +1,11 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import Multiselect from "multiselect-react-dropdown";
-import { gql, useLazyQuery } from '@apollo/client';
+import { gql, useQuery, useLazyQuery } from '@apollo/client';
 import * as _ from 'lodash';
 
 import { log } from "../../../utils/log";
 import { formatDate } from "../../../utils";
-import { GoogleIcons, LeagueStoreAddon } from "../../../datatypes/customDT";
+import { GoogleIcons, LeagueStoreAddon, LeagueStoreConfigType, LeagueStoreMerchantInfo } from "../../../datatypes/customDT";
 
 // GQL
 const GET_ICONS_QUERY = gql`
@@ -13,7 +13,14 @@ query GetGoogleIcons($query: String){
 	googleIcons(query: $query){
       name
     }
-}`;
+}`,
+GET_STORE_CONFIG_QUERY = gql`
+query GetStoreConfig{
+    storeConfigs{
+      _id
+      key
+    }
+}`
 
 export type TableManagementDetailsFieldsType<P> = { 
     icon?: string;
@@ -44,6 +51,12 @@ export type StringDrillDownInputType = {
 export type AddOnDrillDownInputType = {
     fieldKey: string,
     fieldValue?: LeagueStoreAddon[],
+    setItemValue: (e:any) => void
+}
+
+export type MerchantDetailsInputType = {
+    fieldKey: string,
+    fieldValue?: LeagueStoreMerchantInfo[],
     setItemValue: (e:any) => void
 }
 
@@ -197,6 +210,94 @@ function StringDrillDownInput({ fieldKey, fieldValue, setItemValue }: StringDril
                     </button>
                 </div>
             }
+        </div>
+    )
+}
+
+function MerchantDetailsInput({ fieldKey, fieldValue, setItemValue }: MerchantDetailsInputType){    
+    const [activeFields, setActiveFields] = useState<{[key:string]: boolean}>({});
+    const { loading, data }= useQuery(GET_STORE_CONFIG_QUERY);
+
+    const addMissingConfig = (key?: string) => {
+        if(key){
+            const tmpList = [...(fieldValue ?? []), new LeagueStoreMerchantInfo(key)];
+
+            setItemValue({ target: { name: fieldKey, value: tmpList }});
+        }
+    }
+
+    const handleToggle = (idx: number) => { 
+        const tmpevent = { target: { name: 'defaultLogo', value:!(fieldValue && fieldValue[idx]?.defaultLogo) }}
+
+        handleTextChange(tmpevent, idx);
+    }
+
+    const handleTextChange = (e: any, idx: number) => {
+        try {
+            let tmpFieldVal = _.cloneDeep(fieldValue);
+
+            if(tmpFieldVal && idx < tmpFieldVal?.length){
+                const name: keyof LeagueStoreMerchantInfo = e.target.name;
+
+                tmpFieldVal[idx][name] = e.target.value;
+                setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+            }
+        } catch(ex) {
+            log.error(`Handing Text Change: ${ex}`);
+        }
+    }
+
+    useEffect(()=>{
+        const tmpDict:{[key:string]: boolean} = {};
+        if(fieldValue && fieldValue?.length > 0){
+            fieldValue.forEach((f) => {
+                if(f.store_id) { 
+                    tmpDict[f.store_id] = true;
+                }
+            });
+        }
+
+        setActiveFields(tmpDict);
+    },[fieldValue]);
+    
+    return(
+        <div className="merchant-details-input-container">
+            {fieldValue?.map((field,i) => 
+                <div className="config-container active" key={`active-${i}`}>
+                    <div className="container-icon">
+                        <span className="icon material-symbols-outlined">edit_note</span>
+                    </div>
+                    <div className="config-title">{field.store_id} Invoice</div>
+
+                    <div className="input-field-container">
+                        <div className="item-edit-field sz-6">
+                            <span className="field-title">Title</span>
+                            <input type="text" name="title" value={field?.title} onChange={(e)=>{ handleTextChange(e, i) }} autoComplete="off" />
+                        </div>
+                        <div className="item-edit-field sz-4">
+                            <span className="field-title">Show Lee Lee Logo?</span>
+                            <button className={`simple-toggle-switch ${(field && field.defaultLogo) ? 'active' : ''}`} onClick={(e)=>{ handleToggle(i) }}>
+                                <span className='slider' />
+                            </button>
+                        </div>
+
+                        <div className="item-edit-field sz-10">
+                            <span className="field-title">Address Line</span>
+                            <textarea name="subText" rows={3} value={field?.subText} onChange={(e)=>{ handleTextChange(e, i) }} autoComplete="off" />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {data?.storeConfigs?.map((config: LeagueStoreConfigType, i:number) =>
+                <div className={`config-container missing ${config?.key && config.key in activeFields ? 'hidden' : ''}`} 
+                    key={`missing-${i}`} onClick={()=> addMissingConfig(config.key)}>
+                    <div className="container-icon">
+                        <span className="icon material-symbols-outlined">add</span>
+                    </div>
+                    <div className="config-title">{config.key}</div>
+                </div>
+            )}
         </div>
     )
 }
@@ -375,6 +476,13 @@ export default function TableManagementModalRow<P>({ field, item, setItem }:Tabl
                 {(field.type === 'addon_drill_down_list') &&
                     <AddOnDrillDownInput setItemValue={setItemDetails} fieldKey={dynamicKey} 
                         fieldValue={((item && item[field.key]) ? item[field.key] as LeagueStoreAddon[] : [])}  
+                    />
+                }
+
+                {/* Merchant Detail Selector */}
+                {(field.type === 'merchant_details') &&
+                    <MerchantDetailsInput setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={((item && item[field.key]) ? item[field.key] as LeagueStoreMerchantInfo[] : [])}
                     />
                 }
             </div>
