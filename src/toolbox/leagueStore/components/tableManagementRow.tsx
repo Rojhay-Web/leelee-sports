@@ -1,11 +1,11 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import Multiselect from "multiselect-react-dropdown";
 import { gql, useQuery, useLazyQuery } from '@apollo/client';
 import * as _ from 'lodash';
 
 import { log } from "../../../utils/log";
 import { formatDate } from "../../../utils";
-import { GoogleIcons, LeagueStoreAddon, LeagueStoreConfigType, LeagueStoreMerchantInfo } from "../../../datatypes/customDT";
+import { GoogleIcons, LeagueSportType, LeagueStoreAddon, LeagueStoreConfigType, LeagueStoreMerchantInfo, StoreItemDetails } from "../../../datatypes/customDT";
 
 // GQL
 const GET_ICONS_QUERY = gql`
@@ -20,7 +20,23 @@ query GetStoreConfig{
       _id
       key
     }
-}`
+}`,
+GET_LEAGUE_QUERY = gql`
+query GetLocations {
+    leagueLocations {
+        _id
+        name
+    }
+}`,
+GET_SPORTS_QUERY = gql`
+query GetLeagueSports{
+	sports{
+      _id
+      title
+      icon
+    }
+}`;
+
 
 export type TableManagementDetailsFieldsType<P> = { 
     icon?: string;
@@ -29,6 +45,7 @@ export type TableManagementDetailsFieldsType<P> = {
     type: string;
     net_new_active?:boolean;
     title_vert_set?:boolean;
+    overflow_field_content?:boolean;
     conditional_fields?:(keyof P)[];
 }
 
@@ -72,6 +89,12 @@ export type StoreAddonOptionSelect = {
     fieldKey: string,
     fieldValue?: LeagueStoreAddon[],
     preSelectedSet?:LeagueStoreAddon[],
+    setItemValue: (e:any) => void
+}
+
+export type LeagueStoreItemDetails = {
+    fieldKey: string,
+    fieldValue?: StoreItemDetails,
     setItemValue: (e:any) => void
 }
 
@@ -582,6 +605,109 @@ function StoreAddonOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemV
     );
 }
 
+function LeagueStoreItemDetails({ fieldKey, fieldValue, setItemValue }: LeagueStoreItemDetails){    
+    const [selectedSport, setSelectedSport] = useState<LeagueSportType | undefined>(undefined);
+    const [toggleDateSelector, setToggleDateSelector] = useState(false);
+
+    const dataToggleBtnRef = useRef<HTMLDivElement>(null);
+    const dateSelectorRef = useRef<HTMLDivElement>(null);
+    
+    const { loading:sports_loading, data: sports_data }= useQuery(GET_SPORTS_QUERY, {fetchPolicy: 'no-cache' });
+    // const { loading: league_loading, data: league_data }= useQuery(GET_LEAGUE_QUERY, { fetchPolicy: 'no-cache' });
+
+    const displayCustomDropdown = (value: string, option: any) => {
+        return <div className="select-icon">
+                    <span className="icon material-symbols-outlined">{option?.icon ?? 'circle'}</span>
+                    <span className="icon-text">{option?.title ?? 'Inactive Title'}</span>
+                </div>;
+    }
+
+     const toggleSelect = (selection: any, add: boolean) => {
+        setItemValue({ target: { name: fieldKey, value: (add && selection?._id) ? selection._id : null }});
+    }
+
+    // Date Range Toggle
+    const handleOutsideClick = (event: any) => {
+        if (
+            (dataToggleBtnRef.current && !dataToggleBtnRef.current.contains(event.target)) &&
+            (dateSelectorRef.current && !dateSelectorRef.current.contains(event.target))
+        ) {
+            setToggleDateSelector(false);
+        }
+    };
+
+    useEffect(()=>{
+        if(fieldValue?.sport_id && fieldValue.sport_id.length > 0){
+            let filterSport = sports_data?.sports.filter((s: LeagueSportType) => s._id === fieldValue?.sport_id)
+            const tmpSelSport = filterSport?.length > 0 ? filterSport[0] : { "_id": fieldValue?.sport_id };
+
+            setSelectedSport(tmpSelSport);
+        }
+    },[fieldValue]);
+
+    useEffect(() => {
+        document.addEventListener("click", handleOutsideClick, false);
+        return () => {
+            document.removeEventListener("click", handleOutsideClick, false);
+        };
+    }, []);
+
+    return(
+        <div className="store-item-details-container">
+            {/* Sport Select */}
+            {sports_loading ? <>Loading...</> :
+                <Multiselect
+                    displayValue="_id"
+                    isObject={true}
+                    closeOnSelect
+                    className="store-item-details-dropdown"
+                    singleSelect
+                    options={sports_data?.sports ?? []}
+                    selectedValues={(selectedSport != undefined ? [selectedSport] : [])}
+                    placeholder={`Select League Sport`}
+                    onSelect={(_: any, selectedItem: any) => toggleSelect(selectedItem, true)}
+                    onRemove={(_: any, selectedItem: any) => toggleSelect(selectedItem, false)}
+                    optionValueDecorator={displayCustomDropdown}
+                    selectedValueDecorator={displayCustomDropdown}
+                    style={{
+                        chips: {
+                            backgroundColor: 'rgba(186,142,35,1)',
+                            fontSize: '10px',
+                        },
+                        searchBox:{
+                            borderWidth:'2px', borderColor: 'rgba(170,170,170,1)',
+                            borderRadius: '8px'
+                        }
+                    }}
+                />
+            }
+
+            {/* Date Range Select */}
+            <div className="date-range-container">
+                <div className="range-btn" ref={dataToggleBtnRef} onClick={()=>{ setToggleDateSelector((p) => !p) }}>
+                    {!(fieldValue?.start_dt) ?
+                        <div className="date-container"><span>No Dates Selected</span></div> :
+                        <div className="date-container">
+                            <span>{formatDate(fieldValue.start_dt, 'MMM dd, yyyy')}</span>
+                            <span>-</span>
+                            {fieldValue?.end_dt ?
+                                <span>{formatDate(fieldValue.end_dt, 'MMM dd, yyyy')}</span> :
+                                <span>No Set</span>
+                            }
+                        </div>
+                    }
+                </div>
+
+                {(toggleDateSelector) &&
+                    <div className="range-selector-container" ref={dateSelectorRef}></div>
+                }
+            </div>
+
+            {/* Location Select*/}
+        </div>
+    );
+}
+
 export default function TableManagementModalRow<P>({ storeConfig, field, item, setItem }:TableManagementModalRowType<P>){
     let dynamicValue = (item && item[field.key] ? item[field.key] as string : '');
     let dynamicKey = field.key as string;
@@ -661,7 +787,7 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
                 <span className="field-icon material-symbols-outlined">{field.icon ?? 'radio_button_unchecked'}</span>
                 <span className='field-title-text'>{field.title}</span>
             </div>
-            <div className='field-content'>
+            <div className={`field-content ${field?.overflow_field_content ? 'open' :''}`}>
                 {/* Email String */}
                 {(field.type === 'email') &&
                     <input className='text-input' type="email" name={dynamicKey} placeholder={`Enter ${field.title}`} value={dynamicValue} onChange={setItemDetails} />
@@ -784,6 +910,13 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
                     <StoreAddonOptionSelect setItemValue={setItemDetails} fieldKey={dynamicKey} 
                         fieldValue={((item && item[field.key]) ? item[field.key] as LeagueStoreAddon[] : [])}
                         preSelectedSet={(storeConfig && storeConfig?.length > 0 ? storeConfig[0]?.addons : [])}
+                    />
+                }
+
+                {/* Store Item Details - League */}
+                {(field.type === 'league_store_item_details') &&
+                    <LeagueStoreItemDetails setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={((item && item[field.key]) ? item[field.key] as StoreItemDetails : undefined)}
                     />
                 }
             </div>

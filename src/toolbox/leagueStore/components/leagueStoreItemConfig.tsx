@@ -159,7 +159,7 @@ const storeConfig: {[key:string]: any} = {
                 { icon:'type_specimen', title: 'League Type', key:'category', type: 'text', net_new_active: false, title_vert_set: true },
                 { icon:'tv_options_edit_channels', title: 'League Type Options', key:'categorySet', type: 'category_list_options', net_new_active: false, title_vert_set: true },
 
-                { icon:'info', title: 'League Details', key:'details', type: '', net_new_active: false, title_vert_set: true },
+                { icon:'info', title: 'League Details', key:'details', type: 'league_store_item_details', net_new_active: false, title_vert_set: true, overflow_field_content: true },
                 { icon:'event_list', title: 'Addons', key:'addons', type: 'addons_list_options', net_new_active: false, title_vert_set: true },
             ]
         }
