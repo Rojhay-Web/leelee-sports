@@ -68,8 +68,8 @@ function StoreConfigEditorModal({ storeKey, modalStatus, setModalStatus, selConf
         "leagues":{
             fields:[
                 { icon:'counter_1', title: 'Purchased League Minimum', key:'minimum', type: 'number', net_new_active: false },
-                { icon:'type_specimen', title: 'League Category Type', key:'category', type: 'text', net_new_active: false },
-                { icon:'format_list_bulleted_add', title: 'League Category Fields', key:'categorySet', type: 'string_drill_down_list', net_new_active: false, title_vert_set: true },
+                { icon:'type_specimen', title: 'League Type', key:'category', type: 'text', net_new_active: false },
+                { icon:'format_list_bulleted_add', title: 'League Type Options', key:'categorySet', type: 'string_drill_down_list', net_new_active: false, title_vert_set: true },
                 { icon:'list', title: 'League Addons', key:'addons', type: 'addon_drill_down_list', net_new_active: false, title_vert_set: true },
             ]
         },

@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 
-import { LeagueLocationsType, LeagueStoreConfigType } from "../../../datatypes/customDT";
+import { LeagueLocationsType, LeagueStoreConfigType, LeagueStoreItemType } from "../../../datatypes/customDT";
 
 import StoreConfigEditor from "../components/storeConfig";
 import LocationManager from "../components/locationConfig";
+import LeagueStoreItemManager from "../components/leagueStoreItemConfig";
 
 // Sports Editor Tool
 export default function StoreManager(){
     const [selConfig, setSelectedConfig] = useState<LeagueStoreConfigType | undefined>(undefined);
     const [selLocation, setSelectedLocation] = useState<LeagueLocationsType | undefined>(undefined);
+    const [selLeagueStoreItem, setSelLeagueStoreItem] = useState<LeagueStoreItemType | undefined>(undefined);
 
     useEffect(()=>{
         if(selConfig != undefined){
@@ -29,7 +31,9 @@ export default function StoreManager(){
                     </div>
                 </div>
                 <div className="league-store-component-row fill">
-                    <div className="row-col sz-10"></div>
+                    <div className="row-col sz-10">
+                        <LeagueStoreItemManager type={"leagues"} selLeagueStoreItem={selLeagueStoreItem} setSelLeagueStoreItem={setSelLeagueStoreItem} />
+                    </div>
                 </div>
             </div>
         </>

@@ -33,6 +33,7 @@ export type TableManagementDetailsFieldsType<P> = {
 }
 
 export type TableManagementModalRowType<P> = { 
+    storeConfig?:LeagueStoreConfigType[],
     field: TableManagementDetailsFieldsType<P>,
     item?: P,
     setItem: Dispatch<SetStateAction<P | undefined>>
@@ -57,6 +58,20 @@ export type AddOnDrillDownInputType = {
 export type MerchantDetailsInputType = {
     fieldKey: string,
     fieldValue?: LeagueStoreMerchantInfo[],
+    setItemValue: (e:any) => void
+}
+
+export type StoreCategoryOptionSelectType = {
+    fieldKey: string,
+    fieldValue?: string[],
+    preSelectedSet?:string[],
+    setItemValue: (e:any) => void
+}
+
+export type StoreAddonOptionSelect = {
+    fieldKey: string,
+    fieldValue?: LeagueStoreAddon[],
+    preSelectedSet?:LeagueStoreAddon[],
     setItemValue: (e:any) => void
 }
 
@@ -302,7 +317,272 @@ function MerchantDetailsInput({ fieldKey, fieldValue, setItemValue }: MerchantDe
     )
 }
 
-export default function TableManagementModalRow<P>({ field, item, setItem }:TableManagementModalRowType<P>){
+function StoreCategoryOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemValue }: StoreCategoryOptionSelectType){    
+    const [openToggle, setOpenToggle] = useState(false);
+    const [newValue, setNewValue] = useState("");
+    const [disabledNew, setDisabledNew] = useState<string[]>([]);
+    
+    const valueIsSelected = (val: string) => {
+        if(fieldValue){
+            return fieldValue.some(element => {
+                return element.toLowerCase() === val.toLowerCase();
+            });
+        }
+
+        return false;
+    }
+
+    const valueInPreselect = (val: string) => {
+        if(preSelectedSet){
+            return preSelectedSet.some(element => { return element === val; });
+        }
+
+        return false;
+    }
+
+    const toggleSelect = (val: string, addToDisabled=false) => {
+        let tmpFieldVal = fieldValue ? _.cloneDeep(fieldValue) : [];
+
+        if(!valueIsSelected(val)){
+            tmpFieldVal.push(val);
+        } else {
+            tmpFieldVal = tmpFieldVal.filter((fv) => { return fv != val; });
+
+            if(!valueInPreselect(val) && addToDisabled){
+                setDisabledNew((p:string[]) => {
+                    let ret: string[] = [...p];
+
+                    if(!ret.includes(val)){
+                        ret.push(val);
+                    }
+
+                    return ret;
+                });
+            }
+        }
+
+        setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+    }
+
+    const toggleDisabledSelect = (val:string) => {
+        toggleSelect(val);
+
+        setDisabledNew((p) => {
+            return p.filter((v) => { return val != v; });
+        });
+    }
+
+    const addNewOption = () => {
+        if(newValue?.length > 0) {
+            toggleSelect(_.cloneDeep(newValue));
+            setNewValue('');
+        }
+    }
+
+    return(
+        <div className="str-drill-down-container select-list">
+            <div className="header-container">
+                <div className="header-text">{fieldValue?.length} item(s)</div>
+                <span className="icon material-symbols-outlined" onClick={()=> setOpenToggle(p => !p)}>{openToggle ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+            </div>
+            
+            {openToggle && 
+                <div className="select-list-container">
+                    {/* FieldValue Data not in preSelectedSet */}
+                    {fieldValue?.filter((fv) => { return !valueInPreselect(fv); }).map((set, i) => 
+                        <div className={`select-list-item ${valueIsSelected(set) ? 'sel' : ''}`} key={`field-${i}`}>
+                            <button className="check-bx" onClick={()=> { toggleSelect(set, true) }}/>
+                            <span className="title">{set}</span>
+                        </div>
+                    )}
+
+                    {/* Disabled New Set */}
+                    {disabledNew?.map((set, i) => 
+                        <div className={`select-list-item`} key={`disabled-set-${i}`}>
+                            <button className="check-bx" onClick={()=> { toggleDisabledSelect(set) }}/>
+                            <span className="title">{set}</span>
+                        </div>
+                    )}
+
+                    {/* PreSelected Set */}
+                    {preSelectedSet?.map((set, i) => 
+                        <div className={`select-list-item ${valueIsSelected(set) ? 'sel' : ''}`} key={`pre-${i}`}>
+                            <button className="check-bx" onClick={()=> { toggleSelect(set) }}/>
+                            <span className="title">{set}</span>
+                        </div>
+                    )}
+
+                    {/* Add New Input */}
+                    <div className={`select-list-item`}>
+                        <button className="icon-btn" disabled={newValue?.length <= 0} onClick={addNewOption}>
+                            <span className="material-symbols-outlined">add_circle</span>
+                        </button>
+                        <input type="text" value={newValue} placeholder="Add New Option" onChange={(e)=>{ setNewValue(e.target.value) }} />
+                    </div>
+                </div>
+            }
+        </div>
+    )
+}
+
+function StoreAddonOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemValue }: StoreAddonOptionSelect){    
+    const [openToggle, setOpenToggle] = useState(false);
+    const [newValue, setNewValue] = useState("");
+    const [disabledNew, setDisabledNew] = useState<LeagueStoreAddon[]>([]);
+
+    const valueIsSelected = (val: LeagueStoreAddon) => {
+        if(fieldValue){
+            return fieldValue.some(element => {
+                return (element?.title && val?.title) && element.title.toLowerCase() === val.title.toLowerCase();
+            });
+        }
+
+        return false;
+    }
+
+    const valueInPreselect = (val: LeagueStoreAddon) => {
+        if(preSelectedSet){
+            return preSelectedSet.some(element => {
+                return (element?.title && val?.title) && element.title.toLowerCase() === val.title.toLowerCase();
+            });
+        }
+
+        return false;
+    }
+
+    const toggleSelect = (val: LeagueStoreAddon, addToDisabled=false) => {
+        let tmpFieldVal = fieldValue ? _.cloneDeep(fieldValue) : [];
+
+        if(!valueIsSelected(val)){
+            tmpFieldVal.push(val);
+        } else {
+            tmpFieldVal = tmpFieldVal.filter((fv) => { return fv?.title != val?.title; });
+
+            if(!valueInPreselect(val) && addToDisabled){
+                setDisabledNew((p:LeagueStoreAddon[]) => {
+                    let ret: LeagueStoreAddon[] = [...p];
+
+                    if(!ret.includes(val)){
+                        ret.push(val);
+                    }
+
+                    return ret;
+                });
+            }
+        }
+
+        setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+    }
+
+    const handleTextChange = (e: any, title?: string) => {
+        try {
+            let tmpFieldVal = _.cloneDeep(fieldValue);
+            const idx = tmpFieldVal?.findIndex((item) => { return item.title == title; })
+
+            if(tmpFieldVal && idx && idx < tmpFieldVal?.length){
+                const name: keyof LeagueStoreAddon = e.target.name;
+
+                tmpFieldVal[idx][name] = e.target.value;
+                setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+            }
+        } catch(ex) {
+            log.error(`Handing Text Change: ${ex}`);
+        }
+    }
+
+    const addNewOption = () => {
+        if(newValue?.length > 0) {
+            toggleSelect({ title: _.cloneDeep(newValue) });
+            setNewValue('');
+        }
+    }
+
+    return(
+        <div className="str-drill-down-container select-list">
+            <div className="header-container">
+                <div className="header-text">{fieldValue?.length} addon(s)</div>
+                <span className="icon material-symbols-outlined" onClick={()=> setOpenToggle(p => !p)}>{openToggle ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+            </div>
+
+            {openToggle && 
+                <div className="select-list-container">
+                    {/* FieldValue Data not in preSelectedSet */}
+                    {fieldValue?.filter((fv) => { return !valueInPreselect(fv); }).map((set, i) => 
+                        <div className={`select-list-item ${valueIsSelected(set) ? 'sel' : ''}`} key={`field-${i}`}>
+                            <button className="check-bx" onClick={()=> { toggleSelect(set, true) }}/>
+                            
+                            <div className="select-list-edit-container">
+                                <div className="item-edit-field sz-4">
+                                    <span className="input-title">{set?.title}</span>
+                                </div>
+                                <div className="item-edit-field sz-2">
+                                    <span className="field-title">Min</span>
+                                    <input type="number" name="minimum" min="0" step="1" value={set?.minimum} onChange={(e)=>{ handleTextChange(e, set?.title) }} autoComplete="off" />
+                                </div>
+                                <div className="item-edit-field sz-4">
+                                    <span className="field-title">Price Per</span>
+                                    <input type="number" name="price" min="0" step="0.01" value={set?.price} onChange={(e)=>{ handleTextChange(e, set?.title) }} autoComplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Disabled New Set */}
+                    {disabledNew?.map((set, i) => 
+                        <div className={`select-list-item`} key={`field-${i}`}>
+                            <button className="check-bx" onClick={()=> { }}/>
+                            
+                            <div className="select-list-edit-container">
+                                <div className="item-edit-field sz-4">
+                                    <span className="input-title">{set?.title}</span>
+                                </div>
+                                <div className="item-edit-field sz-2">
+                                    <span className="field-title">Min</span>
+                                    <input type="number" name="minimum" min="0" step="1" value={set?.minimum} disabled autoComplete="off" />
+                                </div>
+                                <div className="item-edit-field sz-4">
+                                    <span className="field-title">Price Per</span>
+                                    <input type="number" name="price" min="0" step="0.01" value={set?.price} disabled autoComplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* PreSelected Set */}
+                    {preSelectedSet?.map((set, i) => 
+                        <div className={`select-list-item ${valueIsSelected(set) ? 'sel' : ''}`} key={`pre-${i}`}>
+                            <button className="check-bx" onClick={()=> { toggleSelect(set) }}/>
+                            
+                            <div className="select-list-edit-container">
+                                <div className="item-edit-field sz-4">
+                                    <span className="input-title">{set?.title}</span>
+                                </div>
+                                <div className="item-edit-field sz-2">
+                                    <span className="field-title">Min</span>
+                                    <input type="number" name="minimum" min="0" step="1" value={set?.minimum} onChange={(e)=>{ handleTextChange(e, set?.title) }} autoComplete="off" />
+                                </div>
+                                <div className="item-edit-field sz-4">
+                                    <span className="field-title">Price Per</span>
+                                    <input type="number" name="price" min="0" step="0.01" value={set?.price} onChange={(e)=>{ handleTextChange(e, set?.title) }} autoComplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Add New Input */}
+                    <div className={`select-list-item`}>
+                        <button className="icon-btn" disabled={newValue?.length <= 0} onClick={addNewOption}>
+                            <span className="material-symbols-outlined">add_circle</span>
+                        </button>
+                        <input type="text" value={newValue} placeholder="Add New Option" onChange={(e)=>{ setNewValue(e.target.value) }} />
+                    </div>
+                </div>
+            }
+        </div>
+    );
+}
+
+export default function TableManagementModalRow<P>({ storeConfig, field, item, setItem }:TableManagementModalRowType<P>){
     let dynamicValue = (item && item[field.key] ? item[field.key] as string : '');
     let dynamicKey = field.key as string;
 
@@ -397,6 +677,11 @@ export default function TableManagementModalRow<P>({ field, item, setItem }:Tabl
                     <input className='text-input' type="number" name={dynamicKey} min="0" step="1" placeholder={`Enter ${field.title}`} value={dynamicValue} onChange={setItemDetails} />
                 }
 
+                {/* Dollar String */}
+                {(field.type === 'dollar') &&
+                    <input className='text-input' type="number" name={dynamicKey} min="0" step="0.01" placeholder={`Enter ${field.title}`} value={dynamicValue} onChange={setItemDetails} />
+                }
+
                 {/* Description String */}
                 {(field.type === 'description') &&
                     <textarea className='textarea-input' rows={3} name={dynamicKey} placeholder={`Enter ${field.title}`} value={dynamicValue} onChange={setItemDetails} />
@@ -483,6 +768,22 @@ export default function TableManagementModalRow<P>({ field, item, setItem }:Tabl
                 {(field.type === 'merchant_details') &&
                     <MerchantDetailsInput setItemValue={setItemDetails} fieldKey={dynamicKey} 
                         fieldValue={((item && item[field.key]) ? item[field.key] as LeagueStoreMerchantInfo[] : [])}
+                    />
+                }
+
+                {/* Category List Options Selector */}
+                {(field.type === 'category_list_options') &&
+                    <StoreCategoryOptionSelect setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={((item && item[field.key]) ? item[field.key] as string[] : [])}
+                        preSelectedSet={(storeConfig && storeConfig?.length > 0 ? storeConfig[0]?.categorySet : [])}
+                    />
+                }
+
+                {/* AddOn List Options Selector */}
+                {(field.type === 'addons_list_options') &&
+                    <StoreAddonOptionSelect setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={((item && item[field.key]) ? item[field.key] as LeagueStoreAddon[] : [])}
+                        preSelectedSet={(storeConfig && storeConfig?.length > 0 ? storeConfig[0]?.addons : [])}
                     />
                 }
             </div>
