@@ -1,4 +1,4 @@
-import { CSSProperties, Dispatch, SetStateAction, useEffect, useState } from "react";
+import { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Column, ColumnDef, flexRender, getCoreRowModel, SortingState, useReactTable } from "@tanstack/react-table";
 import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import Rodal from "rodal";
@@ -6,16 +6,17 @@ import { spiral } from 'ldrs';
 import * as _ from 'lodash';
 import { toast } from "react-toastify";
 
-import { LeagueStoreConfigType, LeagueStoreItemType } from "../../../datatypes/customDT";
-import { DEBOUNCE_TIME } from "../../../utils";
+import { LeagueStoreItemType } from "../../../datatypes/customDT";
+import { DEBOUNCE_TIME, handleGQLError } from "../../../utils";
 import { log } from "../../../utils/log";
 
 import { UserRegDateCell } from "../../../admin/components/blueprint/userManagementTable";
-import { adminSideModalStyle } from "../../../utils/_customUtils";
+import { adminSideModalStyle, expiredDateStr } from "../../../utils/_customUtils";
 import TableManagementModalRow from "./tableManagementRow";
+import TablePaginationComponent from "./tablePaginationComponent";
 
 type LeagueStoreItemManagerType = {
-    type?:string,
+    type:string,
     selLeagueStoreItem?: LeagueStoreItemType,
     setSelLeagueStoreItem: Dispatch<SetStateAction<LeagueStoreItemType | undefined>>,
 }
@@ -51,6 +52,9 @@ query GetStoreItems($store_key: String, $query:String, $active:Boolean, $page:In
             details {
                 customDesign
                 sport_id
+                sport_info {
+                    icon
+                }
                 start_dt
                 end_dt
                 locations {
@@ -80,31 +84,48 @@ query GetStoreConfig($key: String){
             minimum
         }
     }
+}`,
+UPSERT_STORE_ITEM_MUTATION = gql`
+mutation UpdateLeagueStoreItem($id:String, $item: JSONObj){
+    upsertStoreItems(id: $id, item: $item)
 }`;
 
+const PAGE_SIZE = 15;
 const storeConfig: {[key:string]: any} = {
     "leagues":{
         "title":"League",
         "columns":[
             { 
                 id:"photo",
-                header: 'Photo', accessorKey: 'photo', 
+                header: 'Photo', accessorKey: 'photos', 
                 cell: ({ row }: { row: any}) => { 
-                    return <div className="usrmgt_cell"></div>
+                    const cover_photo = row.original?.photos?.length > 0 ? row.original?.photos[0] : null;
+                    // TODO: ADD KALIDESCOPE PHOTO
+                    return <div className="usrmgt_cell ctr_cell">
+                        {cover_photo ?
+                            <div className="img-cover">[]</div> :
+                            <div className="img-cover empty"><span className="material-symbols-outlined">no_photography</span></div>
+                        }
+                    </div>
                 }
             },
             { 
                 id:"title",
                 header: 'League Name', accessorKey: 'title', 
                 cell: ({ row }: { row: any }) => { 
-                    return <div className="usrmgt_cell">{row.original.title}</div>
+                    return <div className="usrmgt_cell ctr_cell">{row.original.title}</div>
                 }
             },
             { 
                 id:"active",
                 header: 'Is Active?', accessorKey: 'active', 
                 cell: ({ row }: { row: any}) => { 
-                    return <div className="usrmgt_cell"></div>
+                    return <div className="usrmgt_cell ctr_cell">
+                        {row.original.active && !expiredDateStr(row.original?.details?.end_dt) ? 
+                            <span className="material-symbols-outlined">check</span> : 
+                            <></>
+                        }
+                    </div>
                 }
             },
             { 
@@ -121,14 +142,19 @@ const storeConfig: {[key:string]: any} = {
                         priceStr = formatter.format(Number(row.original.price_per_item));
                     }
 
-                    return <div className="usrmgt_cell">{priceStr}</div>
+                    return <div className="usrmgt_cell ctr_cell">{priceStr}</div>
                 }
             },
             { 
                 id:"sport",
                 header: 'Sport', accessorKey: 'details', 
                 cell: ({ row }: { row: any}) => { 
-                    return <div className="usrmgt_cell"></div>
+                    return <div className="usrmgt_cell ctr_cell">
+                        {row.original?.details?.sport_info?.icon ? 
+                            <span className="material-symbols-outlined">{row.original.details.sport_info.icon}</span> : 
+                            <></>
+                        }
+                    </div>
                 }
             },
 
@@ -136,14 +162,14 @@ const storeConfig: {[key:string]: any} = {
                 id:"start_dt",
                 header: 'League Start', accessorKey: 'details', 
                 cell: ({ row }: { row: any}) => { 
-                    return <UserRegDateCell registration_date={row.original.details?.start_dt}/>;
+                    return <UserRegDateCell registration_date={row.original.details?.start_dt} date_format={'MM-dd-yyyy'} />;
                 }
             },
             { 
                 id:"end_dt",
                 header: 'League End', accessorKey: 'details', 
                 cell: ({ row }: { row: any}) => { 
-                    return <UserRegDateCell registration_date={row.original.details?.end_dt}/>;
+                    return <UserRegDateCell registration_date={row.original.details?.end_dt} date_format={'MM-dd-yyyy'} />;
                 }
             }
         ],
@@ -154,7 +180,7 @@ const storeConfig: {[key:string]: any} = {
                 { icon:'toggle_on', title: 'League Is Active', key:'active', type: 'toggle', net_new_active: false },
                 { icon:'toggle_on', title: 'Minumum Participants', key:'minimum', type: 'number', net_new_active: false },
                 { icon:'price_change', title: 'Price Up To Minimum', key:'price_per_item', type: 'dollar', net_new_active: false },
-                { icon:'attach_money', title: 'Price Past Minimum', key:'additional_set_price', type: 'dollar', net_new_active: false },
+                { icon:'attach_money', title: 'Additional Participants Price', key:'additional_set_price', type: 'dollar', net_new_active: false },
 
                 { icon:'type_specimen', title: 'League Type', key:'category', type: 'text', net_new_active: false, title_vert_set: true },
                 { icon:'tv_options_edit_channels', title: 'League Type Options', key:'categorySet', type: 'category_list_options', net_new_active: false, title_vert_set: true },
@@ -174,12 +200,16 @@ const storeConfig: {[key:string]: any} = {
 };
 
 function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLeagueStoreItem, setSelLeagueStoreItem }:LeagueStoreItemManagerModalType){
+    const [key, setKey] = useState(0);
+
     const [editStoreItem, setEditStoreItem] = useState<LeagueStoreItemType|undefined>();
     const [inProgress, setInProgress] = useState(false);
 
     const pageTitle = `${(selLeagueStoreItem?._id !== undefined ? `Update` : 'Add')} ${(type && type in storeConfig) ? storeConfig[type].title : 'Store'}`;
     const { loading, data }= useQuery(GET_STORE_CONFIG_QUERY, { variables:{ type: type }, fetchPolicy: 'no-cache' });
 
+    const [upsertStoreItem,{ loading: upsert_loading, data: upsert_data, error: upsert_error }] = useMutation(UPSERT_STORE_ITEM_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
+        
     const closeModal = () => {
         setModalStatus(false); 
         setSelLeagueStoreItem(undefined);
@@ -204,6 +234,73 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
         return tmpStoreItem;
     }
 
+    const validateStoreItem = () => {
+        let ret = [];
+        try {
+            if(!editStoreItem?.title){
+                ret.push('Add Title');
+            }
+
+            if(!editStoreItem?.description){
+                ret.push('Add Description');
+            }
+
+            if(!editStoreItem?.minimum || editStoreItem.minimum <= 0){
+                ret.push('Add Minimum Participants');
+            }
+
+            if(!editStoreItem?.price_per_item || editStoreItem.price_per_item <= 0){
+                ret.push('Add Price Up To Minimum');
+            }
+
+            if(!editStoreItem?.additional_set_price || editStoreItem.additional_set_price <= 0){
+                ret.push('Add Additional Participants Price');
+            }
+
+            if(type === 'leagues'){
+                if(!editStoreItem?.details || !editStoreItem.details?.sport_id){
+                    ret.push('Add League Sport');                    
+                }
+            } else if(type === 'apparel'){
+                // TODO: Add Apparel Checks
+            }
+        } catch(ex){
+            log.error(`Validating Store Item: ${ex}`);
+            ret.push('[EC 001]');
+        }
+
+        return ret;
+    }
+
+    const castUpsertStoreItem = (storeItem?: LeagueStoreItemType) =>{
+        let tmpItem = _.cloneDeep(storeItem);
+        
+        try {
+            delete tmpItem?.photos;
+            delete tmpItem?.details?.sport_info;
+        } catch(ex){
+            log.error(`Casting Store Item: ${ex}`);
+        }
+
+        return tmpItem;
+    }
+
+    const saveStoreItem = () => { 
+        // Validate Data
+        const validations = validateStoreItem();
+        if(validations?.length > 0){
+            toast.warning(`Please Check the following: ${validations?.join(', ')}`, { position: "top-right",
+                autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                draggable: true, progress: undefined, theme: "light" });
+        } else {
+            upsertStoreItem({ variables: {
+                id: editStoreItem?._id ?? undefined,
+                item: castUpsertStoreItem(editStoreItem)
+            }});
+        }
+    }
+    const deleteStoreItem = () => { }
+
     useEffect(()=>{ 
         if(selLeagueStoreItem && !loading){
             setModalStatus(true);
@@ -220,12 +317,37 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
         }
     }, [editStoreItem]);
 
+    useEffect(()=>{ 
+        if(!upsert_loading ){
+            if(upsert_error){
+                const errorMsg = JSON.stringify(upsert_error, null, 2);
+                // console.log(errorMsg);
+
+                toast.error(`Error Adding/Updating Store Item: ${upsert_error.message}`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            } else if(upsert_data?.upsertStoreItems){
+                closeModal();
+                toast.success(`Adding/Updating Store Item`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[upsert_loading, upsert_data, upsert_error]);
+
+    useEffect(()=>{
+        if(modalStatus) {
+            setKey((p) => p+1);
+        }
+    },[modalStatus]);
+
     return(
         <Rodal className="user-management-editor-modal" 
             customStyles={adminSideModalStyle} visible={modalStatus} 
             onClose={closeModal} animation={'slideRight'}
         >
-            <div className='user-management-editor-container'>
+            <div className='user-management-editor-container' key={key}>
                 <div className='header-row'>
                     <span>{(type && type in storeConfig) ? `${storeConfig[type].title}` : 'Store'} Item</span>
                 </div>
@@ -247,6 +369,27 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
                         );
                     })}
                 </div>
+
+                <div className='editor-actions-container'>
+                    <div className='button-list'>
+                        <button className='list-btn save' disabled={upsert_loading || !inProgress} onClick={saveStoreItem}>
+                            {upsert_loading ? 
+                                <div className='btn-icon loader'>
+                                    <l-spiral size="14" speed="0.9" color="#fff" />
+                                </div> :
+                                <span className="btn-icon material-symbols-outlined">save</span>
+                            }
+                            <span className='btn-text'>Save</span>
+                        </button>
+
+                        {(selLeagueStoreItem?._id !== undefined ) &&
+                            <button className='list-btn delete' onClick={deleteStoreItem}>
+                                <span className="btn-icon material-symbols-outlined">delete_forever</span>
+                                <span className='btn-text'>Delete Store Item</span>
+                            </button>
+                        }
+                    </div>
+                </div>
             </div>
         </Rodal>
     );
@@ -256,6 +399,8 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
     const [displaySearch, setDisplaySearch] = useState("");
     const [query, setQuery] = useState("");
     const [active, setActive] = useState(true);
+
+    const [page, setPage] = useState(1);
     
     const [columns, setColumns] = useState<ColumnDef<LeagueStoreItemType>[]>([]);
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -265,7 +410,9 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
     const [loadDelay, setLoadDelay] = useState(false);
     const [modalStatus, setModalStatus] = useState(false);
 
-    const [getStoreItems, { loading, data }] = useLazyQuery(GET_STORE_ITEM_QUERY, { fetchPolicy: 'no-cache' });
+    const pageRender = useRef({ page: false, modalStatus: false });
+
+    const [getStoreItems, { loading, error, data }] = useLazyQuery(GET_STORE_ITEM_QUERY, { fetchPolicy: 'no-cache' });
     
     const table = useReactTable({
         data: tableData,
@@ -301,6 +448,22 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
         }
     }
 
+    const queryData = () => {
+        setLoadDelay(true);
+        getStoreItems({ variables:{ store_key: type, query: query, active: active, page: page, pageSize: PAGE_SIZE } });
+    }
+
+    const cloneLeagueStoreItem = (item: LeagueStoreItemType) => {
+        try {
+            let tmpItem = new LeagueStoreItemType("");
+            tmpItem.generateClone(item);
+            
+            setSelLeagueStoreItem(tmpItem);
+        } catch(ex){
+            log.error(`Cloning League: ${ex}`);
+        }
+    }
+
     useEffect(() => {
         const delayInputTimeoutId = setTimeout(() => {
             setQuery(displaySearch);
@@ -317,8 +480,20 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
     },[type]);
 
     useEffect(() => {
-        // getStoreItems({ variables:{ store_key: type, query: query, active: active, page: 1, pageSize: 15 } });
-    },[]);
+        if(pageRender?.current?.page) {
+            queryData(); 
+        } 
+
+        pageRender.current.page = true;
+    },[page]);
+    
+    useEffect(()=>{
+        if(page === 1) {
+            queryData();
+        } else {
+            setPage(1);
+        }
+    },[query, active]);
 
     useEffect(()=>{
         let delayLoadTimeoutId:NodeJS.Timeout;
@@ -336,6 +511,17 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
         return () => clearTimeout(delayLoadTimeoutId);
     },[loading]);
 
+    useEffect(()=>{ 
+       if(!modalStatus && pageRender?.current?.modalStatus) {
+            if(page === 1) {
+                queryData();
+            } else {
+                setPage(1);
+            }
+       }
+       pageRender.current.modalStatus = true;
+    },[modalStatus]);
+
     useEffect(()=> { spiral.register(); },[]);
 
     return(
@@ -346,13 +532,23 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
                         <h3>{(type && type in storeConfig) ? `${storeConfig[type].title} ` : ''}Store Manager</h3>
                     </div>
 
+                    <div className="ctrl-tabs">
+                        <button className={`tab-btn ${active ? 'sel-tab' : ''}`} onClick={()=> {setActive(true)}}>
+                            Active
+                        </button>
+
+                        <button className={`tab-btn ${!active ? 'sel-tab' : ''}`} onClick={()=> {setActive(false)}}>
+                            In-Active
+                        </button>
+                    </div>
+
                     <div className="ctrl-actions">
                         <div className="action-input-container">
                             <span className="material-symbols-outlined">search</span>
                             <input type="text" name="query" placeholder='Search Users' value={displaySearch} onChange={searchQuery} />
                         </div>
 
-                        <button className='table-action-btn' onClick={()=>{ setSelLeagueStoreItem(new LeagueStoreItemType()) }}>
+                        <button className='table-action-btn' onClick={()=>{ setSelLeagueStoreItem(new LeagueStoreItemType(type)) }}>
                             <span className="material-symbols-outlined">add_circle</span>
                             <span className="btn-title">Add {(type && type in storeConfig) ? `${storeConfig[type].title}` : 'Store'} Item</span>
                         </button>
@@ -364,7 +560,7 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
                     {loading || loadDelay ?
                         <div className='table-loading'>
                             <div className='loader'>
-                                <l-spiral size="150" speed="0.9" color="rgba(0,41,95,1)" />
+                                <l-spiral size="150" speed="0.9" color="rgba(186,142,35,1)" />
                             </div>
                             <h1>Loading...</h1>
                         </div> : 
@@ -410,7 +606,11 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
                                             })}
                                             {/* Column For Actions*/}
                                             <td>
-                                                <button className='update-user-btn' onClick={()=> { }}>
+                                                <button className='update-user-btn' onClick={()=> { cloneLeagueStoreItem(row.original) }}>
+                                                    <span className="material-symbols-outlined">copy_all</span>
+                                                </button>
+
+                                                <button className='update-user-btn' onClick={()=> { setSelLeagueStoreItem(row.original) }}>
                                                     <span className="material-symbols-outlined">more_vert</span>
                                                 </button>
                                             </td>
@@ -421,6 +621,8 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
                         </table>
                     }
                 </div>
+
+                <TablePaginationComponent loading={loading} totalItems={data?.storeItems?.totalResults} pageSize={PAGE_SIZE} pagesLeft={data?.storeItems?.pagesLeft} page={page} setPage={setPage} />
             </div>
 
             <LeagueStoreItemManagerModal type={type} modalStatus={modalStatus} setModalStatus={setModalStatus} selLeagueStoreItem={selLeagueStoreItem} setSelLeagueStoreItem={setSelLeagueStoreItem} />

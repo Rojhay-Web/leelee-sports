@@ -1,3 +1,4 @@
+import { isPast } from "date-fns";
 import { formatDateStr } from ".";
 
 export const VIDEOS_URL = 'https://www.youtube.com/@LeeLeeKiddz/videos';
@@ -38,3 +39,16 @@ export const hasDuplicatesByKey = (arr:any[], key:any) => {
   }
   return false; // No duplicates found after checking all items
 };
+
+export const expiredDateStr = (dateStr?: string) => {
+    let ret = false;
+    try {
+        if(!dateStr) return true;
+
+        const tmpDt = new Date(dateStr);
+        ret = isPast(tmpDt);
+    } catch(ex){
+        console.log(`Checking Expired Dt: ${ex}`);
+    }
+    return ret;
+}

@@ -167,10 +167,10 @@ export function UserRoleCell({ roles }: { roles?: string[]}) {
     )
 }
 
-export function UserRegDateCell({ registration_date, default_title='No Registration Date' }: { registration_date?: Date, default_title?: string }) {
+export function UserRegDateCell({ registration_date, default_title='No Registration Date', date_format='MM/dd/yyyy HH:mm:ss' }: { registration_date?: Date, default_title?: string, date_format?: string }) {
     return (
         <div className="usrmgt_cell reg_dt_cell">
-            {registration_date ? formatDate(registration_date, 'MM/dd/yyyy HH:mm:ss') : default_title}
+            {registration_date ? formatDate(registration_date, date_format) : default_title}
         </div> 
     );
 }

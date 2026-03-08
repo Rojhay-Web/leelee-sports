@@ -1,6 +1,8 @@
 require('dotenv').config();
 const { ObjectId } = require('mongodb');
 
+const _ = require('lodash');
+
 const log = require('../log.service');
 const util = require('../../utils/util');
 
@@ -12,6 +14,35 @@ const { DatabaseName } = process.env;
 const appTables = {
     "league_sports":true, "ls_locations":true
 };
+
+const league_store_config = {
+    "leagues":{
+        "default_sort": {
+            "active":{ "details.end_dt": 1 },
+            "inactive":{ "details.end_dt": -1 }
+        },
+        "search_subquery": {
+            "active": { 
+                // $gt: [{ $dateFromString: { dateString: '$details.end_dt' } }, new Date()]
+                $gt: ['$details.end_dt', Date.now()]
+            },
+            "inactive": {
+                // $lte: [{ $dateFromString: { dateString: '$details.end_dt' } }, new Date()]
+                $lte: ['$details.end_dt', Date.now()]
+            }
+        }
+    },
+    "apparel":{
+        "default_sort": {
+            "active":{},
+            "inactive":{}
+        },
+        "search_subquery":{ 
+            "active":{},
+            "inactive":{}
+        }
+    }
+}
 
 module.exports = {
     getGoogleIcons: async function(query=''){
@@ -203,7 +234,7 @@ module.exports = {
 
     // Store Items
     storeItems: {
-        search: async function(store_key=null, query=null, active=true, page=1, pageSize=15){
+        search: async function(store_key=null, query=null, active=true, sortType=null, sortAsc=null, page=1, pageSize=15){
             try {
                 const collection = await dbCollection("ls_store_items");
                 if(collection == null){
@@ -212,40 +243,76 @@ module.exports = {
 
                 let safeQuery = _.escapeRegExp(query);
                 const offset = ((page - 1) * pageSize);
-                const sort = active ? { start_dt: sortAsc ? 1 : -1 } : {};
-                
+                const sort = sortType && sortAsc != null ? 
+                    { [sortType]: sortAsc ? 1 : -1 } : 
+                    { ...(!(store_key in league_store_config) ? 
+                        {} :
+                        (active ? 
+                            league_store_config[store_key].default_sort.active : 
+                            league_store_config[store_key].default_sort.inactive 
+                        )
+                    )};
+                                
                 const colQuery = {
-                    $and: [
-                        ...(query ?  {
-                            $or: [
-                                { title: {'$regex': safeQuery, '$options' : 'i'}},
-                                { description: {'$regex': safeQuery, '$options' : 'i'}}
-                            ]
-                        } : {}),
-                        ...(store_key ? { store_id: store_key } : {}),
-                        ...(active ? 
+                    $expr: {
+                        $and: [
+                            {
+                                $or: [
+                                    { $regexMatch: { input: "$title", regex: safeQuery, options: "i" }},
+                                    { $regexMatch: { input: "$description", regex: safeQuery, options: "i" }}
+                                ]
+                            },
+                            {...(store_key ? { store_id: store_key } : {})},
+                            {...(active ?
                                 {
-                                    active: true,
-                                    end_dt: { $gt: new Date()}
-                                } : 
+                                    $and:[
+                                        { active: true },
+                                        { ...(store_key in league_store_config ? league_store_config[store_key].search_subquery.active : {}) }
+                                    ]
+                                } :
                                 {
                                     $or: [
-                                        { active: false },
-                                        {  end_dt: { $lte: new Date()} }
+                                        { $ne: [ '$active', true ]},
+                                        { ...(store_key in league_store_config ? league_store_config[store_key].search_subquery.inactive : {}) }
                                     ]
                                 }
-                        )
-                    ]
+                            )}
+                        ]
+                    }
                 };
-
-                const queryItems = await collection.find(colQuery)
-                    .sort(sort).limit(pageSize)
-                    .skip(offset).toArray();
+                
+                const queryItems = await collection.aggregate([
+                    { $match: colQuery},
+                    { $addFields: { "details.sport_info_id": { "$toObjectId": "$details.sport_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "league_sports", 
+                            localField: "details.sport_info_id", 
+                            foreignField: "_id", 
+                            as: "details.sport_info_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'details.sport_info': { $arrayElemAt: ['$details.sport_info_list', 0] }
+                        }
+                    },
+                    // Remove the original array field
+                    { $project: { 'details.sport_info_list': 0 } },
+                    // Skips the first N documents
+                    { $skip: offset },  
+                    // Limits the remaining documents to M          
+                    { $limit: pageSize },
+                    // Sort Document By Field
+                    { $sort: { ...sort } },
+                ]).toArray();
+                //.sort(sort).limit(pageSize).skip(offset).toArray();
 
                 const queryCount = await collection.countDocuments(colQuery);
 
                 return { 
-                    results: queryItems, totalCount: queryCount,
+                    results: queryItems, totalResults: queryCount,
                     pagesLeft: util.hasPagesLeft(page, pageSize, queryCount) 
                 };
             } catch(ex){
@@ -253,7 +320,7 @@ module.exports = {
                 return { "error": `Searching League Store Items`};
             }
         },
-        upsert: async function(_id=null, item) {
+        upsert: async function(id=null, item) {
             try {
                 const collection = await dbCollection("ls_store_items");
                 if(collection == null){
@@ -272,13 +339,15 @@ module.exports = {
                     return { error: `Missing Required Field(s): ${param_validation.join(', ')}` };
                 }
 
+                // Standardize Data
+                let setDict = cleanStoreItem(item);
+
                 // UPDATE Existing League Store Item
-                if(_id){                
-                    let setDict = { ...item };
+                if(id){               
                     if("_id" in setDict) delete setDict._id;
 
-                    const result = await collection.updateOne(query, { $set: setDict});
-                    return { results: (result.matchedCount ? _id : null) };
+                    const result = await collection.updateOne({ _id: new ObjectId(id) }, { $set: setDict});
+                    return { results: (result.matchedCount ? id : null) };
                 }
                 
                 // CREATE New League Store Item
@@ -306,6 +375,31 @@ async function dbCollection(conn_collection) {
     }
 
     return collection;
+}
+
+function cleanStoreItem(item) {
+    let ret = { ...item };
+    try {
+        if(item?.details){
+            if(item.details?.start_dt){
+                const date = new Date(item.details.start_dt);
+                const isValid = date instanceof Date && !isNaN(date.valueOf());
+
+                item.details.start_dt = (isValid ? date.getTime() : null);
+            }
+
+            if(item.details?.end_dt){
+                const date = new Date(item.details.end_dt);
+                const isValid = date instanceof Date && !isNaN(date.valueOf());
+
+                item.details.end_dt = (isValid ? date.getTime() : null);
+            }
+        }
+    } catch(ex){
+        log.error(`Cleaning Store Item: ${ex}`);
+    }
+
+    return ret;
 }
 
 

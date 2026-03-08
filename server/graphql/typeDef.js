@@ -285,36 +285,34 @@ module.exports = gql`
         merchantInfo: [LeagueStoreMerchantInfo]
     }
 
-    type LeagueItemDetails {
+    type StoreItemDetails {
         sport_id: String
+        sport_info: LeagueSports
         start_dt: Date
         end_dt: Date
-
         locations: [LeagueLocations]
-    }
 
-    type ApparelItemDetails {
         customDesign: Boolean
     }
 
-    union StoreItemDetails = LeagueItemDetails | ApparelItemDetails
-
     type LeagueStoreItem {
         _id: String!
+        store_item_id: String
         store_id: String
         title: String
         description: String
         active: Boolean
         minimum: Int
 
-        price_per_item: Int
-        additional_set_price: Int
+        price_per_item: Float 
+        additional_set_price: Float 
 
         category: String
         categorySet: [String]
 
         details: StoreItemDetails
         addons: [LeagueStoreAddon]
+        photos:[Photo]
     }
     
     type PagedLeagueStoreItems {

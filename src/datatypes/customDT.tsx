@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+import * as _ from 'lodash';
+
 import { Photo } from '.';
 
 // Types
@@ -13,17 +15,6 @@ export type LeagueStoreUIConfigType = {
         logo: string;
         title: string;
     }
-}
-
-export type StoreItemDetails  = {
-    // LeagueItemDetails
-    sport_id?: string;
-    start_dt?: Date;
-    end_dt?: Date;
-    locations?: LeagueLocationsType[];
-
-    // ApparelItemDetails
-    customDesign?:boolean;
 }
 
 // Classes
@@ -84,10 +75,24 @@ export class LeagueLocationsType {
     constructor(){}
 }
 
+export class StoreItemDetails {
+    // LeagueItemDetails
+    sport_id?: string;
+    sport_info?:string;
+    start_dt?: Date;
+    end_dt?: Date;
+    locations?: LeagueLocationsType[] = [];
+
+    // ApparelItemDetails
+    customDesign?:boolean;
+
+    constructor(){}
+}
+
 export class LeagueStoreItemType {
     _id?:string;
-    photo?:Photo;
     store_id?: string;
+    store_item_id?:string;
     title?: string;
     description?: string;
     active?: boolean;
@@ -102,5 +107,33 @@ export class LeagueStoreItemType {
     addons?: LeagueStoreAddon[];
     details?: StoreItemDetails;
 
-    constructor(){}
+    photos?:Photo[];
+
+    constructor(store_type: string){
+        this.store_id = store_type;
+        this.store_item_id = uuidv4();
+    }
+
+    generateClone(props: LeagueStoreItemType): void {
+        // Deep Copy Data
+        const clone_props = _.cloneDeep(props);
+
+        // Clone All Base Fields
+        this.store_id = clone_props.store_id;
+        this.store_item_id = uuidv4();
+
+        this.title = clone_props.title;
+        this.description = clone_props.description;
+        this.active = clone_props.active;
+        this.minimum = clone_props.minimum;
+
+        this.price_per_item = clone_props.price_per_item;
+        this.additional_set_price = clone_props.additional_set_price;
+
+        this.category = clone_props.category;
+        this.categorySet = clone_props.categorySet;
+
+        this.addons = clone_props.addons;
+        this.details = clone_props.details;
+    }
 }

@@ -205,9 +205,9 @@ module.exports = function (localStore) {
             storeItems: async(_obj, args, context, _info) => {
                 // Validate Active User
                 util.activeUserCheck(context);
-                let ret = await ls_db.storeItems.search(args?.store_key, args?.query, args?.active, args?.page, args?.pageSize);
+                let ret = await ls_db.storeItems.search(args?.store_key, args?.query, args?.active, null, null, args?.page, args?.pageSize);
                 util.checkGQLResults(ret);
-
+                
                 return ret;
             },
         },

@@ -1,5 +1,5 @@
 import { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { gql, useQuery, useMutation } from '@apollo/client';
+import { gql, useMutation, useLazyQuery } from '@apollo/client';
 import Rodal from "rodal";
 import { spiral } from 'ldrs';
 import * as _ from 'lodash';
@@ -88,8 +88,6 @@ function LocationManagerModal({ modalStatus, setModalStatus, selLocation, setSel
                     }
                 });
             }
-
-
         } catch(ex){
             log.error(`Validating Config: ${ex}`);
             ret.push('[EC 001]');
@@ -224,7 +222,7 @@ export default function LocationManager({ selLocation, setSelectedLocation }: Lo
             cell: ({ row }) => { 
                 const merchantInfoList = row.original.merchantInfo;
 
-                return <div className="usrmgt_cell roles">
+                return <div className="usrmgt_cell roles ctr_cell">
                         {merchantInfoList && merchantInfoList?.length > 0 &&
                             <div className='additional-roles-container'>
                                 <div className={`additional-roles`}>{merchantInfoList?.length}</div>
@@ -235,9 +233,7 @@ export default function LocationManager({ selLocation, setSelectedLocation }: Lo
         },
     ]);
 
-    const pageRender = useRef(false); 
-
-    const { loading, data, refetch }= useQuery(GET_LEAGUE_QUERY, { fetchPolicy: 'no-cache' });
+    const [getLocations, { loading, data }] = useLazyQuery(GET_LEAGUE_QUERY, { fetchPolicy: 'no-cache' });
 
     const table = useReactTable({
         data: data?.leagueLocations ?? [],
@@ -265,10 +261,10 @@ export default function LocationManager({ selLocation, setSelectedLocation }: Lo
     }
 
     useEffect(()=>{ 
-       if(!modalStatus && pageRender?.current) {
-           refetch();
+       if(!modalStatus) {
+            setLoadDelay(true);
+            getLocations();
        }
-       pageRender.current = true;
     },[modalStatus]);
 
     useEffect(()=>{
@@ -304,7 +300,7 @@ export default function LocationManager({ selLocation, setSelectedLocation }: Lo
                     {loading || loadDelay ?
                         <div className='table-loading'>
                             <div className='loader'>
-                                <l-spiral size="150" speed="0.9" color="rgba(0,41,95,1)" />
+                                <l-spiral size="150" speed="0.9" color="rgba(186,142,35,1)" />
                             </div>
                             <h1>Loading...</h1>
                         </div> : 

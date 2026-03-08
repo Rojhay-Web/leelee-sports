@@ -15,7 +15,8 @@ export default function StoreManager(){
     useEffect(()=>{
         if(selConfig != undefined){
             // TODO: Set other component selects to undefined to close any open modal
-            setSelectedLocation(undefined);
+            // setSelectedLocation(undefined);
+            // setSelLeagueStoreItem(undefined);
         }
     },[selConfig]);
 

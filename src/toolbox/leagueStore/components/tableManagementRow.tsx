@@ -1,11 +1,15 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import Multiselect from "multiselect-react-dropdown";
 import { gql, useQuery, useLazyQuery } from '@apollo/client';
+import { DateRange } from 'react-date-range';
 import * as _ from 'lodash';
+
+import 'react-date-range/dist/styles.css'; // main style file
+import 'react-date-range/dist/theme/default.css'; // theme css file
 
 import { log } from "../../../utils/log";
 import { formatDate } from "../../../utils";
-import { GoogleIcons, LeagueSportType, LeagueStoreAddon, LeagueStoreConfigType, LeagueStoreMerchantInfo, StoreItemDetails } from "../../../datatypes/customDT";
+import { GoogleIcons, LeagueLocationsType, LeagueSportType, LeagueStoreAddon, LeagueStoreConfigType, LeagueStoreMerchantInfo, StoreItemDetails } from "../../../datatypes/customDT";
 
 // GQL
 const GET_ICONS_QUERY = gql`
@@ -341,7 +345,7 @@ function MerchantDetailsInput({ fieldKey, fieldValue, setItemValue }: MerchantDe
 }
 
 function StoreCategoryOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemValue }: StoreCategoryOptionSelectType){    
-    const [openToggle, setOpenToggle] = useState(false);
+    const [openToggle, setOpenToggle] = useState(true);
     const [newValue, setNewValue] = useState("");
     const [disabledNew, setDisabledNew] = useState<string[]>([]);
     
@@ -500,9 +504,9 @@ function StoreAddonOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemV
     const handleTextChange = (e: any, title?: string) => {
         try {
             let tmpFieldVal = _.cloneDeep(fieldValue);
-            const idx = tmpFieldVal?.findIndex((item) => { return item.title == title; })
+            const idx = tmpFieldVal?.findIndex((item) => { return item.title == title; });
 
-            if(tmpFieldVal && idx && idx < tmpFieldVal?.length){
+            if(tmpFieldVal && idx != undefined && idx < tmpFieldVal?.length){
                 const name: keyof LeagueStoreAddon = e.target.name;
 
                 tmpFieldVal[idx][name] = e.target.value;
@@ -530,7 +534,7 @@ function StoreAddonOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemV
             {openToggle && 
                 <div className="select-list-container">
                     {/* FieldValue Data not in preSelectedSet */}
-                    {fieldValue?.filter((fv) => { return !valueInPreselect(fv); }).map((set, i) => 
+                    {fieldValue?.map((set, i) => 
                         <div className={`select-list-item ${valueIsSelected(set) ? 'sel' : ''}`} key={`field-${i}`}>
                             <button className="check-bx" onClick={()=> { toggleSelect(set, true) }}/>
                             
@@ -572,7 +576,7 @@ function StoreAddonOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemV
                     )}
 
                     {/* PreSelected Set */}
-                    {preSelectedSet?.map((set, i) => 
+                    {preSelectedSet?.filter((fv) => { return !valueIsSelected(fv); }).map((set, i) => 
                         <div className={`select-list-item ${valueIsSelected(set) ? 'sel' : ''}`} key={`pre-${i}`}>
                             <button className="check-bx" onClick={()=> { toggleSelect(set) }}/>
                             
@@ -582,11 +586,11 @@ function StoreAddonOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemV
                                 </div>
                                 <div className="item-edit-field sz-2">
                                     <span className="field-title">Min</span>
-                                    <input type="number" name="minimum" min="0" step="1" value={set?.minimum} onChange={(e)=>{ handleTextChange(e, set?.title) }} autoComplete="off" />
+                                    <input type="number" name="minimum" min="0" step="1" value={set?.minimum} disabled />
                                 </div>
                                 <div className="item-edit-field sz-4">
                                     <span className="field-title">Price Per</span>
-                                    <input type="number" name="price" min="0" step="0.01" value={set?.price} onChange={(e)=>{ handleTextChange(e, set?.title) }} autoComplete="off" />
+                                    <input type="number" name="price" min="0" step="0.01" value={set?.price} disabled />
                                 </div>
                             </div>
                         </div>
@@ -605,25 +609,33 @@ function StoreAddonOptionSelect({ preSelectedSet, fieldKey, fieldValue, setItemV
     );
 }
 
-function LeagueStoreItemDetails({ fieldKey, fieldValue, setItemValue }: LeagueStoreItemDetails){    
+function LeagueStoreItemDetails({ fieldKey, fieldValue, setItemValue }: LeagueStoreItemDetails){
+    const [refreshTool, setRefreshTool] = useState(false);
+
     const [selectedSport, setSelectedSport] = useState<LeagueSportType | undefined>(undefined);
     const [toggleDateSelector, setToggleDateSelector] = useState(false);
+    const [dateRange, setDateRange] = useState<any[]>([]);
+    const [selectedLocations, setSelectedLocations] = useState<LeagueLocationsType[] | undefined>([])
 
     const dataToggleBtnRef = useRef<HTMLDivElement>(null);
     const dateSelectorRef = useRef<HTMLDivElement>(null);
+
     
     const { loading:sports_loading, data: sports_data }= useQuery(GET_SPORTS_QUERY, {fetchPolicy: 'no-cache' });
-    // const { loading: league_loading, data: league_data }= useQuery(GET_LEAGUE_QUERY, { fetchPolicy: 'no-cache' });
+    const { loading: league_loading, data: league_data }= useQuery(GET_LEAGUE_QUERY, { fetchPolicy: 'no-cache' });
 
-    const displayCustomDropdown = (value: string, option: any) => {
+    const displayCustomSportDropdown = (value: string, option: any) => {
         return <div className="select-icon">
                     <span className="icon material-symbols-outlined">{option?.icon ?? 'circle'}</span>
                     <span className="icon-text">{option?.title ?? 'Inactive Title'}</span>
                 </div>;
     }
 
-     const toggleSelect = (selection: any, add: boolean) => {
-        setItemValue({ target: { name: fieldKey, value: (add && selection?._id) ? selection._id : null }});
+    const toggleSportSelect = (selection: any, add: boolean) => {
+        let tmpFieldVal = fieldValue ? _.cloneDeep(fieldValue) : new StoreItemDetails();
+        tmpFieldVal.sport_id = (add && selection?._id) ? selection._id : null;
+
+        setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
     }
 
     // Date Range Toggle
@@ -636,54 +648,100 @@ function LeagueStoreItemDetails({ fieldKey, fieldValue, setItemValue }: LeagueSt
         }
     };
 
+    const handleDateChange = (item:any) =>{
+        let tmpFieldVal = fieldValue ? _.cloneDeep(fieldValue) : new StoreItemDetails();
+
+        // setDateRange([item.selection])
+        tmpFieldVal.start_dt = item?.selection?.startDate;
+        tmpFieldVal.end_dt = item?.selection?.endDate;
+        
+        setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+    }
+
+    const toggleLeagueSelect = (selection: any, add: boolean) => {
+        let tmpFieldVal = fieldValue ? _.cloneDeep(fieldValue) : new StoreItemDetails();
+        tmpFieldVal.locations = tmpFieldVal.locations ?? [];
+
+        // IDX of selection
+        const idx = tmpFieldVal.locations?.findIndex((item) => { return item._id == selection?._id; });
+        
+        if(!(idx >= 0) && add) {
+            tmpFieldVal.locations.push(selection);
+        } else if(idx >= 0 && !add) {
+            tmpFieldVal.locations.splice(idx, 1); 
+        }
+
+        setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+    }
+
     useEffect(()=>{
-        if(fieldValue?.sport_id && fieldValue.sport_id.length > 0){
+        if(!sports_loading && fieldValue?.sport_id && fieldValue.sport_id.length > 0){
             let filterSport = sports_data?.sports.filter((s: LeagueSportType) => s._id === fieldValue?.sport_id)
             const tmpSelSport = filterSport?.length > 0 ? filterSport[0] : { "_id": fieldValue?.sport_id };
 
             setSelectedSport(tmpSelSport);
         }
+    },[fieldValue, sports_loading]);
+
+    useEffect(()=>{
+        setDateRange([
+            {
+                startDate: fieldValue?.start_dt ?? null,
+                endDate: fieldValue?.end_dt ?? null,
+                key: 'selection'
+            }
+        ]);
+
+        setSelectedLocations(fieldValue?.locations ?? []);
     },[fieldValue]);
 
     useEffect(() => {
+        setRefreshTool(true);
+        let delayLoadTimeoutId = setTimeout(() => { setRefreshTool(false); }, 500);
+
         document.addEventListener("click", handleOutsideClick, false);
         return () => {
             document.removeEventListener("click", handleOutsideClick, false);
+            clearTimeout(delayLoadTimeoutId);
         };
     }, []);
 
     return(
         <div className="store-item-details-container">
             {/* Sport Select */}
-            {sports_loading ? <>Loading...</> :
-                <Multiselect
-                    displayValue="_id"
-                    isObject={true}
-                    closeOnSelect
-                    className="store-item-details-dropdown"
-                    singleSelect
-                    options={sports_data?.sports ?? []}
-                    selectedValues={(selectedSport != undefined ? [selectedSport] : [])}
-                    placeholder={`Select League Sport`}
-                    onSelect={(_: any, selectedItem: any) => toggleSelect(selectedItem, true)}
-                    onRemove={(_: any, selectedItem: any) => toggleSelect(selectedItem, false)}
-                    optionValueDecorator={displayCustomDropdown}
-                    selectedValueDecorator={displayCustomDropdown}
-                    style={{
-                        chips: {
-                            backgroundColor: 'rgba(186,142,35,1)',
-                            fontSize: '10px',
-                        },
-                        searchBox:{
-                            borderWidth:'2px', borderColor: 'rgba(170,170,170,1)',
-                            borderRadius: '8px'
-                        }
-                    }}
-                />
-            }
+            <div className="league-dropdown-container item-component">
+                <div className="store-detail-title">League Sport</div>
+                {sports_loading || refreshTool ? <div className="store-item-details-dropdown loading"/> :
+                    <Multiselect
+                        displayValue="_id"
+                        isObject={true}
+                        closeOnSelect
+                        className="store-item-details-dropdown"
+                        singleSelect
+                        options={sports_data?.sports ?? []}
+                        selectedValues={(selectedSport != undefined ? [selectedSport] : [])}
+                        placeholder={`Select League Sport`}
+                        onSelect={(_: any, selectedItem: any) => toggleSportSelect(selectedItem, true)}
+                        onRemove={(_: any, selectedItem: any) => toggleSportSelect(selectedItem, false)}
+                        optionValueDecorator={displayCustomSportDropdown}
+                        selectedValueDecorator={displayCustomSportDropdown}
+                        style={{
+                            chips: {
+                                backgroundColor: 'rgba(186,142,35,1)',
+                                fontSize: '10px',
+                            },
+                            searchBox:{
+                                borderWidth:'2px', borderColor: 'rgba(170,170,170,1)',
+                                borderRadius: '8px'
+                            }
+                        }}
+                    />
+                }
+            </div>
 
-            {/* Date Range Select */}
-            <div className="date-range-container">
+            {/* Date Range Select */}            
+            <div className="date-range-container item-component">
+                <div className="store-detail-title">League Dates</div>
                 <div className="range-btn" ref={dataToggleBtnRef} onClick={()=>{ setToggleDateSelector((p) => !p) }}>
                     {!(fieldValue?.start_dt) ?
                         <div className="date-container"><span>No Dates Selected</span></div> :
@@ -699,17 +757,50 @@ function LeagueStoreItemDetails({ fieldKey, fieldValue, setItemValue }: LeagueSt
                 </div>
 
                 {(toggleDateSelector) &&
-                    <div className="range-selector-container" ref={dateSelectorRef}></div>
+                    <div className="range-selector-container" ref={dateSelectorRef}>
+                        <DateRange
+                            onChange={handleDateChange}
+                            moveRangeOnFirstSelection={false}
+                            ranges={dateRange}
+                        />
+                    </div>
                 }
             </div>
 
             {/* Location Select*/}
+            <div className="league-dropdown-container item-component">
+                <div className="store-detail-title">League Location(s)</div>
+                {league_loading || refreshTool ? <div className="store-item-details-dropdown loading"/> :
+                    <Multiselect
+                        displayValue="name"
+                        isObject={true}
+                        loading={league_loading}
+                        className="store-item-details-dropdown"
+                        options={league_data?.leagueLocations ?? []}
+                        selectedValues={(selectedLocations ? selectedLocations : [])}
+                        placeholder={`Select League Location(s)`}
+                        onSelect={(_: any, selectedItem: any) => toggleLeagueSelect(selectedItem, true)}
+                        onRemove={(_: any, selectedItem: any) => toggleLeagueSelect(selectedItem, false)}
+                        style={{
+                            chips: {
+                                backgroundColor: 'rgba(186,142,35,1)',
+                                fontSize: '10px',
+                            },
+                            searchBox:{
+                                borderWidth:'2px', borderColor: 'rgba(170,170,170,1)',
+                                borderRadius: '8px'
+                            }
+                        }}
+                    />
+                }
+            </div>            
         </div>
     );
 }
 
 export default function TableManagementModalRow<P>({ storeConfig, field, item, setItem }:TableManagementModalRowType<P>){
-    let dynamicValue = (item && item[field.key] ? item[field.key] as string : '');
+    //const [dynamicValue, setDynamicValue] = useState<any>(undefined);
+    let dynamicValue = (item && item[field.key] ? item[field.key] as any : '');
     let dynamicKey = field.key as string;
 
     const [iconList, setIconList] = useState<string[]>([]);
@@ -779,7 +870,7 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
                 .map((gi: GoogleIcons) => gi.name);
             setIconList(tmpList);
         }
-    },[icon_search_loading, icon_search_data])
+    },[icon_search_loading, icon_search_data]);
 
     return(
         <div className='field-item-row'>
@@ -908,7 +999,7 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
                 {/* AddOn List Options Selector */}
                 {(field.type === 'addons_list_options') &&
                     <StoreAddonOptionSelect setItemValue={setItemDetails} fieldKey={dynamicKey} 
-                        fieldValue={((item && item[field.key]) ? item[field.key] as LeagueStoreAddon[] : [])}
+                        fieldValue={dynamicValue/*((item && item[field.key]) ? item[field.key] as LeagueStoreAddon[] : [])*/}
                         preSelectedSet={(storeConfig && storeConfig?.length > 0 ? storeConfig[0]?.addons : [])}
                     />
                 }
