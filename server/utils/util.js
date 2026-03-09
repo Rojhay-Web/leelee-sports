@@ -131,10 +131,11 @@ module.exports = {
     
         return false;
     },
-    checkUserRole(role, roles){
+    checkUserRole(roles, userRoles){
         let ret = false;
         try {
-            ret = roles != undefined && roles.includes(role);
+            // ret = userRoles != undefined && userRoles.includes(role);
+            ret = (userRoles != undefined && userRoles.some(element => roles.includes(element)));
         } catch(ex){
             log.error(`Checking User Role: ${ex}`);
         }

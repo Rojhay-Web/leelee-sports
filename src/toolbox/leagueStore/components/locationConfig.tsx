@@ -31,6 +31,10 @@ query GetLocations{
 UPSERT_LOCATION_MUTATION = gql`
 mutation UpdateLeagueLocation($id:String, $name: String, $merchantInfo: [JSONObj]){
     upsertLeagueLocation(id: $id, name: $name, merchantInfo: $merchantInfo)
+}`,
+REMOVE_FEATURE_ITEM_MUTATION = gql`
+mutation RemoveLeagueStoreFeatureItem($id:String!, $type: String!){
+    deleteLeagueStoreFeatureItem(id: $id, type: $type)
 }`;
 
 import { LeagueLocationsType } from "../../../datatypes/customDT";
@@ -64,6 +68,7 @@ function LocationManagerModal({ modalStatus, setModalStatus, selLocation, setSel
     };
 
     const [upsertLocation,{ loading: upsert_loading, data: upsert_data, error: upsert_error }] = useMutation(UPSERT_LOCATION_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
+    const [removeFeatureItem,{ loading: remove_loading, data: remove_data, error: remove_error }] = useMutation(REMOVE_FEATURE_ITEM_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
     
     const closeModal = () => {
         setModalStatus(false); 
@@ -112,7 +117,11 @@ function LocationManagerModal({ modalStatus, setModalStatus, selLocation, setSel
         }
     }
 
-    const deleteLocation = () => {}
+    const deleteLocation = () => {
+        if(selLocation?._id && window.confirm(`Are you sure you want to delete this location?`)){
+            removeFeatureItem({ variables: { id: selLocation._id, type: 'ls_locations' }})
+        }
+    }
 
     useEffect(()=>{ 
         if(selLocation){
@@ -148,6 +157,25 @@ function LocationManagerModal({ modalStatus, setModalStatus, selLocation, setSel
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     },[upsert_loading, upsert_data, upsert_error]);
+
+    useEffect(()=>{ 
+        if(!remove_loading ){
+            if(remove_error){
+                const errorMsg = JSON.stringify(remove_error, null, 2);
+                console.log(errorMsg);
+
+                toast.error(`Error Removing Location: ${remove_error.message}`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            } else if(remove_data?.deleteLeagueStoreFeatureItem){
+                closeModal();
+                toast.success(`Removed Location`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[remove_loading, remove_data, remove_error]);
 
     return(
         <Rodal className="user-management-editor-modal" 

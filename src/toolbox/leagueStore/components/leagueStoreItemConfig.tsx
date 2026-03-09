@@ -7,13 +7,14 @@ import * as _ from 'lodash';
 import { toast } from "react-toastify";
 
 import { LeagueStoreItemType } from "../../../datatypes/customDT";
-import { DEBOUNCE_TIME, handleGQLError } from "../../../utils";
+import { API_URL, DEBOUNCE_TIME, handleGQLError } from "../../../utils";
+import { adminSideModalStyle, expiredDateStr } from "../../../utils/_customUtils";
 import { log } from "../../../utils/log";
 
 import { UserRegDateCell } from "../../../admin/components/blueprint/userManagementTable";
-import { adminSideModalStyle, expiredDateStr } from "../../../utils/_customUtils";
 import TableManagementModalRow from "./tableManagementRow";
 import TablePaginationComponent from "./tablePaginationComponent";
+import TagImageEditor from "./tagImageEditorComponent";
 
 type LeagueStoreItemManagerType = {
     type:string,
@@ -38,6 +39,7 @@ query GetStoreItems($store_key: String, $query:String, $active:Boolean, $page:In
         results {
             _id
             store_id
+            store_item_id
             title
             description
             active
@@ -67,6 +69,9 @@ query GetStoreItems($store_key: String, $query:String, $active:Boolean, $page:In
                 price
                 minimum
             }
+            photos {
+                _id
+            }
         }
     }
 }`,
@@ -88,22 +93,29 @@ query GetStoreConfig($key: String){
 UPSERT_STORE_ITEM_MUTATION = gql`
 mutation UpdateLeagueStoreItem($id:String, $item: JSONObj){
     upsertStoreItems(id: $id, item: $item)
+}`,
+REMOVE_FEATURE_ITEM_MUTATION = gql`
+mutation RemoveLeagueStoreFeatureItem($id:String!, $type: String!, $photoSetId: String){
+    deleteLeagueStoreFeatureItem(id: $id, type: $type, photoSetId: $photoSetId)
 }`;
 
 const PAGE_SIZE = 15;
 const storeConfig: {[key:string]: any} = {
     "leagues":{
         "title":"League",
+        "maxPhotoCount":1,
         "columns":[
             { 
                 id:"photo",
                 header: 'Photo', accessorKey: 'photos', 
                 cell: ({ row }: { row: any}) => { 
                     const cover_photo = row.original?.photos?.length > 0 ? row.original?.photos[0] : null;
-                    // TODO: ADD KALIDESCOPE PHOTO
+                    
                     return <div className="usrmgt_cell ctr_cell">
                         {cover_photo ?
-                            <div className="img-cover">[]</div> :
+                            <div className="img-cover">
+                                <img src={`${API_URL}/kaleidoscope/${cover_photo._id}`} alt={`${row.original?.title} Cover`}/>
+                            </div> :
                             <div className="img-cover empty"><span className="material-symbols-outlined">no_photography</span></div>
                         }
                     </div>
@@ -192,6 +204,7 @@ const storeConfig: {[key:string]: any} = {
     },
     "apparel": { 
         "title":"Apparel",
+        "maxPhotoCount":6,
         "columns":[],
         "detailsConfig":{
             fields:[]
@@ -209,7 +222,8 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
     const { loading, data }= useQuery(GET_STORE_CONFIG_QUERY, { variables:{ type: type }, fetchPolicy: 'no-cache' });
 
     const [upsertStoreItem,{ loading: upsert_loading, data: upsert_data, error: upsert_error }] = useMutation(UPSERT_STORE_ITEM_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
-        
+    const [removeFeatureItem,{ loading: remove_loading, data: remove_data, error: remove_error }] = useMutation(REMOVE_FEATURE_ITEM_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
+
     const closeModal = () => {
         setModalStatus(false); 
         setSelLeagueStoreItem(undefined);
@@ -299,7 +313,11 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
             }});
         }
     }
-    const deleteStoreItem = () => { }
+    const deleteStoreItem = () => { 
+        if(selLeagueStoreItem?._id && window.confirm(`Are you sure you want to delete this league?`)){
+            removeFeatureItem({ variables: { id: selLeagueStoreItem._id, type: 'ls_store_items', photoSetId: selLeagueStoreItem?.store_item_id }})
+        }
+    }
 
     useEffect(()=>{ 
         if(selLeagueStoreItem && !loading){
@@ -336,6 +354,25 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
         // eslint-disable-next-line react-hooks/exhaustive-deps
     },[upsert_loading, upsert_data, upsert_error]);
 
+    useEffect(()=>{ 
+        if(!remove_loading ){
+            if(remove_error){
+                const errorMsg = JSON.stringify(remove_error, null, 2);
+                console.log(errorMsg);
+
+                toast.error(`Error Removing This Store Item: ${remove_error.message}`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            } else if(remove_data?.deleteLeagueStoreFeatureItem){
+                closeModal();
+                toast.success(`Removed This Store Item`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[remove_loading, remove_data, remove_error]);
+
     useEffect(()=>{
         if(modalStatus) {
             setKey((p) => p+1);
@@ -363,11 +400,19 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
                 </div>
 
                 <div className='field-list-container'>
-                    {type && storeConfig[type].detailsConfig.fields?.map((field:any, i: number) => {
-                        return(
-                            <TableManagementModalRow<LeagueStoreItemType> key={i} field={field} item={editStoreItem} setItem={setEditStoreItem} storeConfig={data?.storeConfigs} />
-                        );
-                    })}
+                    {(type && type in storeConfig) && 
+                        <>
+                            {(editStoreItem?.store_item_id) &&
+                                <TagImageEditor tag={editStoreItem.store_item_id} totalPhotos={storeConfig[type].maxPhotoCount} />
+                            }
+
+                            {storeConfig[type].detailsConfig.fields?.map((field:any, i: number) => {
+                                return(
+                                    <TableManagementModalRow<LeagueStoreItemType> key={i} field={field} item={editStoreItem} setItem={setEditStoreItem} storeConfig={data?.storeConfigs} />
+                                );
+                            })}
+                        </>
+                    }
                 </div>
 
                 <div className='editor-actions-container'>

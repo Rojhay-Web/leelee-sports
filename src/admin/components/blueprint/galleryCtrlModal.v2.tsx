@@ -41,7 +41,9 @@ type GalleryCtrlModalType = {
     secondActionLoading: boolean, hasSecondAction?:boolean,
     secondActionTitle?:string, secondActionStatus?:boolean, 
     selectedImages?: FilePhoto[],
-    secondAction: (tab: string, ids: string[], photoset: FilePhoto[]) => void
+    secondAction: (tab: string, ids: string[], photoset: FilePhoto[]) => void,
+
+    customWidth?:number, customHeight?:number
 };
 
 type GallerySectionType = {
@@ -334,7 +336,8 @@ function GallerySelect({ maxSelect, tag, hasSecondAction = false, secondActionSt
 function GalleryCtrlModal({ 
     visible, tabs, maxSelect, tag, closeAction, 
     secondActionLoading, hasSecondAction, selectedImages,
-    secondActionTitle, secondActionStatus, secondAction
+    secondActionTitle, secondActionStatus, secondAction,
+    customWidth, customHeight
 }: GalleryCtrlModalType){
     const [selectedTab, setSelectedTab] = useState("");
     const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -342,8 +345,8 @@ function GalleryCtrlModal({
     const calcModalSize = () => {
         let ret = { width: 400, height: 300 };
         try {
-            ret.width = (windowSize.width > 832 ? 800 : .85 * windowSize.width);
-            ret.height = (windowSize.height < 200 ? 200 : .85 * windowSize.height);
+            ret.width = customWidth ?? (windowSize.width > 832 ? 800 : .85 * windowSize.width);
+            ret.height = customHeight ?? (windowSize.height < 200 ? 200 : .85 * windowSize.height);
         }
         catch(ex){
             log.error(`Calculating Modal Size: ${ex}`);

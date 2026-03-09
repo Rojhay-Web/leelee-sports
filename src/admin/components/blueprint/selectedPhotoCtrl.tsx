@@ -24,7 +24,7 @@ type SmartPhotoType = {
 
 function SmartPhoto({ uploadFlag, tag, selecting, photo, displayOnly, uploadSuccess, toggleImage } : SmartPhotoType){
     const [status, setStatus] = useState("");
-    const { user } = useContext(userContext.UserContext) as UserContextType;
+    const { token } = useContext(userContext.UserContext) as UserContextType;
 
     const checkToggleImage = () => {
         if(status === ""){
@@ -44,7 +44,7 @@ function SmartPhoto({ uploadFlag, tag, selecting, photo, displayOnly, uploadSucc
                 const response = await fetch(`${API_URL}/image`,{
                     method:'POST', body: imageFormObj,
                     headers: { 
-                        "Authorization": user?._id ?? "",
+                        "Authorization": token ?? "",
                         "Accept": "application/json", 
                     }
                 });

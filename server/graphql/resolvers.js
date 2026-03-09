@@ -388,7 +388,7 @@ module.exports = function (localStore) {
             // Leagues
             upsertSport: async(_obj, args, context, _info) => {
                 // Validate Active User & Roles
-                // util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
+                util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
 
                 let ret = await ls_db.upsertLeagueSport(args?.id, args?.title, args?.icon, args?.description, args?.active);
                 util.checkGQLResults(ret);
@@ -421,6 +421,16 @@ module.exports = function (localStore) {
                 util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
 
                 let ret = await ls_db.storeItems.upsert(args?.id, args?.item);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+            deleteLeagueStoreFeatureItem: async(_obj, args, context, _info) => {
+                // Validate Active User & Roles
+                util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
+                util.validateGQLParams(["id","type"], args);
+
+                let ret = await ls_db.deleteLeagueStoreFeatureItem(args.id, args.type, args?.photoSetId);
                 util.checkGQLResults(ret);
 
                 return ret?.results;

@@ -15,6 +15,12 @@ const appTables = {
     "league_sports":true, "ls_locations":true
 };
 
+const appRemoveTables = {
+    "ls_store_items":true, "ls_locations":true,
+    "ls_organizations":true, "ls_users":true,
+    "ls_quotes":true
+};
+
 const league_store_config = {
     "leagues":{
         "default_sort": {
@@ -232,6 +238,38 @@ module.exports = {
         }
     },
 
+    // Remove League Store Item
+    deleteLeagueStoreFeatureItem: async function(id, type, photoSetId=null){
+        try {
+            if(!(type in appRemoveTables)){
+                return { error: "Invalid Remove Type" };
+            }
+
+            const collection = await dbCollection(type);
+            if(collection == null){
+                return { "error": "Unable to connect to DB [Please contact site admin]"};
+            }
+            
+            const result = await collection.deleteOne({ _id: new ObjectId(id) });
+
+            // Remove photoset from photos
+            if(photoSetId){
+                const photoCollection = await dbCollection("photos");
+                if(photoCollection !== null){
+                    await photoCollection.updateMany(
+                        { photosets: { $in: [photoSetId] } },
+                        { $pull: { photosets: photoSetId } }
+                    );   
+                }
+            }
+            
+            return { results: (result?.deletedCount ? true : false)};
+        } catch(ex){
+            log.error(`Delete League Store Item [${type}]: ${ex}`);
+            return { "error": `Delete League Store Item [${type}]`};
+        }
+    },
+
     // Store Items
     storeItems: {
         search: async function(store_key=null, query=null, active=true, sortType=null, sortAsc=null, page=1, pageSize=15){
@@ -283,6 +321,7 @@ module.exports = {
                 
                 const queryItems = await collection.aggregate([
                     { $match: colQuery},
+                    // Join with league_sports table to get icon by sportid
                     { $addFields: { "details.sport_info_id": { "$toObjectId": "$details.sport_id" }}},
                     { 
                         $lookup: {  
@@ -298,6 +337,25 @@ module.exports = {
                             'details.sport_info': { $arrayElemAt: ['$details.sport_info_list', 0] }
                         }
                     },
+                    // Join with photos table to get photo list
+                    { 
+                        $lookup: {  
+                            from: "photos", 
+                            // localField: "store_item_id",
+                            let:{ storeItemId: "$store_item_id" }, 
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: {
+                                            $in:['$$storeItemId', '$photosets']
+                                        }
+                                    }
+                                }
+                            ], 
+                            as: "photos" 
+                        }
+                    },
+
                     // Remove the original array field
                     { $project: { 'details.sport_info_list': 0 } },
                     // Skips the first N documents
@@ -307,7 +365,6 @@ module.exports = {
                     // Sort Document By Field
                     { $sort: { ...sort } },
                 ]).toArray();
-                //.sort(sort).limit(pageSize).skip(offset).toArray();
 
                 const queryCount = await collection.countDocuments(colQuery);
 

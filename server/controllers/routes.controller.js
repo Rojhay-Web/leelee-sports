@@ -20,7 +20,7 @@ const acceptedFiles = { 'image/jpeg': true, 'image/png': true };
 const fileFilter = async (req, file, cb) => {
     try {
         const auth_ret = await auth.validateUser(req?.headers);
-        const is_Admin = util.checkUserRole('ADMIN', auth_ret?.app_id?.roles);
+        const is_Admin = util.checkUserRole(['ADMIN','LEAGUE_STORE_ADMIN'], auth_ret?.app_id?.roles);
 
         if(!(auth_ret?.results === true && is_Admin === true)){
             log.warning(`File Upload Rejected: Unauthorized User`);

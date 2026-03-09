@@ -68,6 +68,7 @@ module.exports = gql`
         upsertLeagueLocation(id:String, name: String, merchantInfo: [JSONObj]): String
 
         upsertStoreItems(id:String, item:JSONObj): String
+        deleteLeagueStoreFeatureItem(id: String!, type: String!, photoSetId: String):Boolean
     }
 
     input PageKeyInput {
