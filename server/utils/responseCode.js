@@ -5,7 +5,8 @@ module.exports = {
     },
     ERROR:{
         BAD_REQUEST:400,
-        UNAUTHORIZED:401
+        UNAUTHORIZED:401,
+        RATE_LIMIT: 429
     },
     SERVER_ERROR:{
         INTERNAL:500,

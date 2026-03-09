@@ -72,12 +72,13 @@ module.exports = function(localStore) {
                     const imgBuffer = Buffer.from(ret.results.path, 'base64');
                     // Set the Content-Type header
                     res.writeHead(200, {
+                        'Cache-Control':'max-age=31536000',
                         'Content-Type': ret.results.headerType,
                         'Content-Length': imgBuffer.length
                     });
                     res.end(imgBuffer);
-                }
-                else {
+                } else {
+                    res.writeHead(200, { 'Cache-Control':'max-age=31536000' });
                     res.sendFile(ret.results.path);
                 }
             }
@@ -92,10 +93,7 @@ module.exports = function(localStore) {
     }
 
     // Apply the rate limiting middleware to express router.
-    router.use(rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 200 // limit each IP to 100 requests per windowMs
-    }));
+    router.use(rateLimit(util.rateLimit));
 
     router.get("/kaleidoscope/:image_id", viewImage);
     router.post("/image", upload.single('image'), uploadImage);

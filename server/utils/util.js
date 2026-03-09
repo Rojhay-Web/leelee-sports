@@ -9,6 +9,16 @@ const log = require('../services/log.service'),
 const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/g;
 
 module.exports = {
+    rateLimit: {
+        windowMs: 1 * 60 * 1000, // 1 minutes
+        max: 1000, // limit each IP to 1000 requests per windowMs
+        handler: (req, res, next) => {
+            const error = new Error('Rate limit exceeded');
+            error.status = response.ERROR.RATE_LIMIT;
+            // Pass the error to the next error handling middleware
+            next(error); 
+        }
+    },
     formatDate(date, formatStr = 'yyyy-MM-dd HH:mm:ss'){
         let ret = null;
         try {

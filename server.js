@@ -12,15 +12,13 @@ const auth = require('./server/services/blueprint/auth.service'),
 
 // V3 Global Cache Store
 const localStore = require('./server/services/localCache.js');
+const util = require('./server/utils/util.js');
 
 // parse application/json
 app.use(express.json());
 
 // Apply the rate limiting middleware to all requests.
-app.use(rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200 // limit each IP to 100 requests per windowMs
-}));
+app.use(rateLimit(util.rateLimit));
 
 // Set CORS 
 if(process.env.DEBUG === "1"){ app.use(cors()); }
@@ -58,6 +56,16 @@ app.use(express.static(path.join(__dirname, 'build')));
 // Catch all other routes and return the index file
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'build','index.html'));
+});
+
+// Your general error handling middleware (must be at the end)
+app.use((err, _req, res, _next) => {
+  if(err){
+        log.error('Server Error', err);
+        res.status(err.status || 500).json({
+            error: { message: err.message || 'Internal Server Error' },
+        });
+    }
 });
 
 // Catch all other routes and return the index file
