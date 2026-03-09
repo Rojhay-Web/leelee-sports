@@ -28,24 +28,35 @@ const league_store_config = {
             "inactive":{ "details.end_dt": -1 }
         },
         "search_subquery": {
-            "active": { 
-                // $gt: [{ $dateFromString: { dateString: '$details.end_dt' } }, new Date()]
-                $gt: ['$details.end_dt', Date.now()]
-            },
-            "inactive": {
-                // $lte: [{ $dateFromString: { dateString: '$details.end_dt' } }, new Date()]
-                $lte: ['$details.end_dt', Date.now()]
-            }
+            "active": [
+                { active: true },
+                { 'details.end_dt': { $gt: Date.now() } }
+            ],
+            "inactive": [
+                { active: { $ne: true }},
+                { 'details.end_dt': { $lte: Date.now() } }
+            ]
+        },
+        "param_validations": function(item) {
+            return [
+                { type:"number", data: item?.minimum, title: "minimum" },
+                { type:"number", data: item?.additional_set_price, title: "additional_set_price" }
+            ];
         }
     },
     "apparel":{
         "default_sort": {
-            "active":{},
-            "inactive":{}
+            "active":{ "active": 1 },
+            "inactive":{ "active": -1 }
         },
         "search_subquery":{ 
-            "active":{},
-            "inactive":{}
+            "active":[{ active: true }],
+            "inactive":[{ active: { $ne: true }}]
+        },
+        "param_validations": function(item) { 
+            return [
+                { type:"number", data: item?.minimum, title: "minimum" },
+            ]; 
         }
     }
 }
@@ -290,33 +301,27 @@ module.exports = {
                             league_store_config[store_key].default_sort.inactive 
                         )
                     )};
-                                
+                
                 const colQuery = {
-                    $expr: {
-                        $and: [
-                            {
-                                $or: [
-                                    { $regexMatch: { input: "$title", regex: safeQuery, options: "i" }},
-                                    { $regexMatch: { input: "$description", regex: safeQuery, options: "i" }}
-                                ]
-                            },
-                            {...(store_key ? { store_id: store_key } : {})},
-                            {...(active ?
-                                {
-                                    $and:[
-                                        { active: true },
-                                        { ...(store_key in league_store_config ? league_store_config[store_key].search_subquery.active : {}) }
-                                    ]
-                                } :
-                                {
-                                    $or: [
-                                        { $ne: [ '$active', true ]},
-                                        { ...(store_key in league_store_config ? league_store_config[store_key].search_subquery.inactive : {}) }
-                                    ]
-                                }
-                            )}
-                        ]
-                    }
+                    ...(store_key ? { "store_id": store_key } : {}),
+                    $or: [
+                        { title: {'$regex': safeQuery, '$options' : 'i'} },
+                        { description: {'$regex': safeQuery, '$options' : 'i'} },
+                    ],
+                    ...(active ? 
+                        {
+                            $and:[ ...(store_key in league_store_config ? 
+                                league_store_config[store_key].search_subquery.active : 
+                                [{ active: true }]) 
+                            ]
+                        } : 
+                        {
+                            $or: [ ...(store_key in league_store_config ? 
+                                league_store_config[store_key].search_subquery.inactive : 
+                                [{ active: { $ne: true } }]) 
+                            ]
+                        }
+                    )
                 };
                 
                 const queryItems = await collection.aggregate([
@@ -377,19 +382,20 @@ module.exports = {
                 return { "error": `Searching League Store Items`};
             }
         },
-        upsert: async function(id=null, item) {
+        upsert: async function(store_key= null, id=null, item) {
             try {
                 const collection = await dbCollection("ls_store_items");
                 if(collection == null){
                     return { "error": "Unable to connect to DB [Please contact site admin]"};
                 }
 
-                // Validate Data
+                // Validate Data 
                 let param_validation = util.validateValue([
                     { type:"text", data: item?.store_id, title: "store" }, 
                     { type:"text", data: item?.title, title: "title" },
                     { type:"number", data: item?.price_per_item, title: "price_per_item" }, 
-                    { type:"number", data: item?.additional_set_price, title: "additional_set_price" }
+                    // Additional Store Validations based on individual store
+                    ...(store_key ? (league_store_config[store_key]?.param_validations(item) ?? []) : [])
                 ]);
 
                 if(param_validation.length > 0){

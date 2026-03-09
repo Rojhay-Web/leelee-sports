@@ -420,7 +420,7 @@ module.exports = function (localStore) {
                 // Validate Active User & Roles
                 util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
 
-                let ret = await ls_db.storeItems.upsert(args?.id, args?.item);
+                let ret = await ls_db.storeItems.upsert(args?.store_key, args?.id, args?.item);
                 util.checkGQLResults(ret);
 
                 return ret?.results;

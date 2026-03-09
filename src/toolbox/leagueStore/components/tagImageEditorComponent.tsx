@@ -80,6 +80,14 @@ export default function TagImageEditor({ tag, totalPhotos }: TagImageEditorType)
         }
     }
 
+    const travesePhotoSet = (dir: number) => {
+        if(dir < 0 && selPhotoIdx > 0){
+            setSelPhotoIdx((p) => p -1);
+        } else if(dir > 0 && (selPhotoIdx + 1) < photoSet?.length){
+            setSelPhotoIdx((p) => p + 1);
+        }
+    }
+
     useEffect(()=>{
         if(selPhotoIdx >= 0 && selPhotoIdx < photoSet.length){
             setSelectedPhoto(photoSet[selPhotoIdx]);
@@ -89,7 +97,15 @@ export default function TagImageEditor({ tag, totalPhotos }: TagImageEditorType)
     },[selPhotoIdx]);
 
     useEffect(()=>{
-        setSelPhotoIdx((photoSet?.length > 0) ? 0 : -1);
+        const newSelIdx = (photoSet?.length > 0) ? 0 : -1;
+        
+        if(selPhotoIdx != newSelIdx) {
+            setSelPhotoIdx(newSelIdx);
+        } else if(newSelIdx === 0 && newSelIdx < photoSet.length){
+            setSelectedPhoto(photoSet[0]);
+        } else {
+            setSelectedPhoto(undefined);
+        }      
     },[photoSet]);
 
     useEffect(()=>{
@@ -152,7 +168,7 @@ export default function TagImageEditor({ tag, totalPhotos }: TagImageEditorType)
                 
                 {totalPhotos > 1 &&
                     <div className="photoset-container">
-                        <button className="page-ctrl" disabled={selPhotoIdx < 1} onClick={()=> {}}>
+                        <button className="page-ctrl" disabled={selPhotoIdx < 1} onClick={()=> travesePhotoSet(-1)}>
                             <span className="icon material-symbols-outlined">chevron_left</span>
                         </button>
                         
@@ -168,7 +184,7 @@ export default function TagImageEditor({ tag, totalPhotos }: TagImageEditorType)
                             )}
                         </div>
 
-                        <button className="page-ctrl" disabled={(selPhotoIdx < 0 || selPhotoIdx >= (photoSet?.length - 1))} onClick={()=> {}}>
+                        <button className="page-ctrl" disabled={(selPhotoIdx < 0 || selPhotoIdx >= (photoSet?.length - 1))} onClick={()=> travesePhotoSet(1)}>
                             <span className="icon material-symbols-outlined">chevron_right</span>
                         </button>
                     </div>
@@ -182,7 +198,7 @@ export default function TagImageEditor({ tag, totalPhotos }: TagImageEditorType)
                 }
             </div>
 
-            <GalleryCtrlModal visible={openModal} tabs={tabs} tag={tag} maxSelect={(totalPhotos - photoSet?.length)} 
+            <GalleryCtrlModal visible={openModal} tabs={tabs} tag={tag} maxSelect={(totalPhotos)} 
                 secondActionTitle={totalPhotos > 1 ? 'Add Photos' : 'Add Photo'} selectedImages={photoSet}
                 secondAction={modalSecondAction} secondActionLoading={photoset_images_loading} hasSecondAction={true} 
                 secondActionStatus={!photoset_images_loading} closeAction={()=> setOpenModal(false)} 

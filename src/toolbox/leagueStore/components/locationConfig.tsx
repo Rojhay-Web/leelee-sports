@@ -328,7 +328,7 @@ export default function LocationManager({ selLocation, setSelectedLocation }: Lo
                     {loading || loadDelay ?
                         <div className='table-loading'>
                             <div className='loader'>
-                                <l-spiral size="150" speed="0.9" color="rgba(186,142,35,1)" />
+                                <l-spiral size="75" speed="0.9" color="rgba(186,142,35,1)" />
                             </div>
                             <h1>Loading...</h1>
                         </div> : 

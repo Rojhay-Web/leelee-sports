@@ -17,11 +17,13 @@ import leeLee_logo from '../../assets/logo/logo_kiddz3.png';
 // Pages
 // import LeagueLanding from "./pages/landing";
 import SportEditor from "./pages/sportEditor";
-import StoreManager from "./pages/storeManager";
+import LeagueStoreManager from "./pages/leagueStoreManager";
+import ApparelStoreManager from "./pages/apparelStoreManager";
 
 export const leagueStoreComponents: AdminPathType[] = [
     { title: "League Sports", scope:"", icon:"sports", path:"league_sports", element: SportEditor },
-    { title: "Store Manager", scope:"", icon:"warehouse", path:"store_manager", element: StoreManager },
+    { title: "League Store Manager", scope:"", icon:"warehouse", path:"league_store", element: LeagueStoreManager },
+    { title: "Apparel Store Manager", scope:"", icon:"apparel", path:"apparel_store", element: ApparelStoreManager },
 ];
 
 const basePath = '/toolbox/leaguestore';

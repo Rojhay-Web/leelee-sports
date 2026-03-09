@@ -798,8 +798,22 @@ function LeagueStoreItemDetails({ fieldKey, fieldValue, setItemValue }: LeagueSt
     );
 }
 
+function ApparelStoreItemDetails({ fieldKey, fieldValue, setItemValue }: LeagueStoreItemDetails){
+    const toggleValue = () => {
+        let tmpFieldVal = fieldValue ? _.cloneDeep(fieldValue) : new StoreItemDetails();
+        tmpFieldVal.customDesign = fieldValue && !!fieldValue.customDesign ? false: true;
+        
+        setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+    }
+
+    return(
+        <button className={`simple-toggle-switch ${(fieldValue && fieldValue.customDesign) ? 'active' : ''}`} onClick={toggleValue}>
+            <span className='slider' />
+        </button>
+    );
+}
+
 export default function TableManagementModalRow<P>({ storeConfig, field, item, setItem }:TableManagementModalRowType<P>){
-    //const [dynamicValue, setDynamicValue] = useState<any>(undefined);
     let dynamicValue = (item && item[field.key] ? item[field.key] as any : '');
     let dynamicKey = field.key as string;
 
@@ -1007,6 +1021,13 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
                 {/* Store Item Details - League */}
                 {(field.type === 'league_store_item_details') &&
                     <LeagueStoreItemDetails setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={((item && item[field.key]) ? item[field.key] as StoreItemDetails : undefined)}
+                    />
+                }
+
+                {/* Store Item Details - Apparel */}
+                {(field.type === 'apparel_store_item_details') &&
+                    <ApparelStoreItemDetails setItemValue={setItemDetails} fieldKey={dynamicKey} 
                         fieldValue={((item && item[field.key]) ? item[field.key] as StoreItemDetails : undefined)}
                     />
                 }

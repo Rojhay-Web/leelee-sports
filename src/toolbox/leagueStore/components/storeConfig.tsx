@@ -74,7 +74,11 @@ function StoreConfigEditorModal({ storeKey, modalStatus, setModalStatus, selConf
             ]
         },
         "apparel":{
-            fields:[]
+            fields:[
+                { icon:'counter_1', title: 'Cart Purchased Minimum', key:'minimum', type: 'number', net_new_active: false },
+                { icon:'type_specimen', title: 'Item Dimensions', key:'category', type: 'text', net_new_active: false },
+                { icon:'format_list_bulleted_add', title: 'Item Dimensions Dimensions Options', key:'categorySet', type: 'string_drill_down_list', net_new_active: false, title_vert_set: true },
+            ]
         }
     }
 

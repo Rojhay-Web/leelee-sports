@@ -91,8 +91,8 @@ query GetStoreConfig($key: String){
     }
 }`,
 UPSERT_STORE_ITEM_MUTATION = gql`
-mutation UpdateLeagueStoreItem($id:String, $item: JSONObj){
-    upsertStoreItems(id: $id, item: $item)
+mutation UpdateLeagueStoreItem($store_key:String, $id:String, $item: JSONObj){
+    upsertStoreItems(store_key: $store_key, id: $id, item: $item)
 }`,
 REMOVE_FEATURE_ITEM_MUTATION = gql`
 mutation RemoveLeagueStoreFeatureItem($id:String!, $type: String!, $photoSetId: String){
@@ -190,7 +190,7 @@ const storeConfig: {[key:string]: any} = {
                 { icon:'title', title: 'League Title', key:'title', type: 'text', net_new_active: false },                
                 { icon:'description', title: 'League Description', key:'description', type: 'description', net_new_active: false },
                 { icon:'toggle_on', title: 'League Is Active', key:'active', type: 'toggle', net_new_active: false },
-                { icon:'toggle_on', title: 'Minumum Participants', key:'minimum', type: 'number', net_new_active: false },
+                { icon:'groups', title: 'Minumum Participants', key:'minimum', type: 'number', net_new_active: false },
                 { icon:'price_change', title: 'Price Up To Minimum', key:'price_per_item', type: 'dollar', net_new_active: false },
                 { icon:'attach_money', title: 'Additional Participants Price', key:'additional_set_price', type: 'dollar', net_new_active: false },
 
@@ -205,9 +205,75 @@ const storeConfig: {[key:string]: any} = {
     "apparel": { 
         "title":"Apparel",
         "maxPhotoCount":6,
-        "columns":[],
+        "columns":[
+            { 
+                id:"photo",
+                header: 'Photo', accessorKey: 'photos', 
+                cell: ({ row }: { row: any}) => { 
+                    const cover_photo = row.original?.photos?.length > 0 ? row.original?.photos[0] : null;
+                    
+                    return <div className="usrmgt_cell ctr_cell">
+                        {cover_photo ?
+                            <div className="img-cover">
+                                <img src={`${API_URL}/kaleidoscope/${cover_photo._id}`} alt={`${row.original?.title} Cover`}/>
+                            </div> :
+                            <div className="img-cover empty"><span className="material-symbols-outlined">no_photography</span></div>
+                        }
+                    </div>
+                }
+            },
+            { 
+                id:"title",
+                header: 'Item Name', accessorKey: 'title', 
+                cell: ({ row }: { row: any }) => { 
+                    return <div className="usrmgt_cell ctr_cell">{row.original.title}</div>
+                }
+            },
+            { 
+                id:"minimum",
+                header: 'Piece Minimum', accessorKey: 'minimum', 
+                cell: ({ row }: { row: any }) => { 
+                    return <div className="usrmgt_cell ctr_cell">{row.original.minimum}</div>
+                }
+            },
+            { 
+                id:"price_per_item",
+                header: 'Price Per Piece', accessorKey: 'price_per_item', 
+                cell: ({ row }: { row: any}) => { 
+                    let priceStr = 'No Price Set';
+
+                    const formatter = new Intl.NumberFormat('en-US', {
+                      style: 'currency', currency: 'USD'
+                    });
+                    
+                    if(row.original.price_per_item && !isNaN(row.original.price_per_item)){
+                        priceStr = formatter.format(Number(row.original.price_per_item));
+                    }
+
+                    return <div className="usrmgt_cell ctr_cell">{priceStr}</div>
+                }
+            },
+            { 
+                id:"description",
+                header: 'Item Details', accessorKey: 'description', 
+                cell: ({ row }: { row: any }) => { 
+                    return <div className="usrmgt_cell ctr_cell">{row.original.description?.slice(0, 50)}...</div>
+                }
+            },
+        ],
         "detailsConfig":{
-            fields:[]
+            fields:[
+                { icon:'title', title: 'Item Name', key:'title', type: 'text', net_new_active: false },
+                { icon:'description', title: 'Item Description', key:'description', type: 'description', net_new_active: false },
+                { icon:'toggle_on', title: 'Item Is Active', key:'active', type: 'toggle', net_new_active: false },
+                { icon:'stacked_inbox', title: 'Minumum Item Amount', key:'minimum', type: 'number', net_new_active: false },
+                { icon:'price_change', title: 'Price', key:'price_per_item', type: 'dollar', net_new_active: false },
+
+                { icon:'type_specimen', title: 'Item Type', key:'category', type: 'text', net_new_active: false, title_vert_set: true },
+                { icon:'tv_options_edit_channels', title: 'Item Type Options', key:'categorySet', type: 'category_list_options', net_new_active: false, title_vert_set: true },
+
+                { icon:'toggle_off', title: 'Custom Designable?', key:'details', type: 'apparel_store_item_details', net_new_active: false, title_vert_set: true, overflow_field_content: true },
+            ]
         }
     }
 };
@@ -219,7 +285,7 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
     const [inProgress, setInProgress] = useState(false);
 
     const pageTitle = `${(selLeagueStoreItem?._id !== undefined ? `Update` : 'Add')} ${(type && type in storeConfig) ? storeConfig[type].title : 'Store'}`;
-    const { loading, data }= useQuery(GET_STORE_CONFIG_QUERY, { variables:{ type: type }, fetchPolicy: 'no-cache' });
+    const { loading, data } = useQuery(GET_STORE_CONFIG_QUERY, { variables:{ key: type }, fetchPolicy: 'no-cache' });
 
     const [upsertStoreItem,{ loading: upsert_loading, data: upsert_data, error: upsert_error }] = useMutation(UPSERT_STORE_ITEM_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
     const [removeFeatureItem,{ loading: remove_loading, data: remove_data, error: remove_error }] = useMutation(REMOVE_FEATURE_ITEM_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
@@ -260,18 +326,18 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
             }
 
             if(!editStoreItem?.minimum || editStoreItem.minimum <= 0){
-                ret.push('Add Minimum Participants');
+                ret.push('Add Minimum');
             }
 
             if(!editStoreItem?.price_per_item || editStoreItem.price_per_item <= 0){
-                ret.push('Add Price Up To Minimum');
-            }
-
-            if(!editStoreItem?.additional_set_price || editStoreItem.additional_set_price <= 0){
-                ret.push('Add Additional Participants Price');
+                ret.push('Add Price');
             }
 
             if(type === 'leagues'){
+                if(!editStoreItem?.additional_set_price || editStoreItem.additional_set_price <= 0){
+                    ret.push('Add Additional Participants Price');
+                }
+
                 if(!editStoreItem?.details || !editStoreItem.details?.sport_id){
                     ret.push('Add League Sport');                    
                 }
@@ -308,6 +374,7 @@ function LeagueStoreItemManagerModal({ type, modalStatus, setModalStatus, selLea
                 draggable: true, progress: undefined, theme: "light" });
         } else {
             upsertStoreItem({ variables: {
+                store_key: type,
                 id: editStoreItem?._id ?? undefined,
                 item: castUpsertStoreItem(editStoreItem)
             }});
@@ -457,7 +524,7 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
 
     const pageRender = useRef({ page: false, modalStatus: false });
 
-    const [getStoreItems, { loading, error, data }] = useLazyQuery(GET_STORE_ITEM_QUERY, { fetchPolicy: 'no-cache' });
+    const [getStoreItems, { loading, data }] = useLazyQuery(GET_STORE_ITEM_QUERY, { fetchPolicy: 'no-cache' });
     
     const table = useReactTable({
         data: tableData,
@@ -520,7 +587,6 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
     useEffect(()=>{
         if(type && type in storeConfig) {
             setColumns(storeConfig[type]?.columns ?? []);
-            
         }
     },[type]);
 
@@ -605,7 +671,7 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
                     {loading || loadDelay ?
                         <div className='table-loading'>
                             <div className='loader'>
-                                <l-spiral size="150" speed="0.9" color="rgba(186,142,35,1)" />
+                                <l-spiral size="100" speed="0.9" color="rgba(186,142,35,1)" />
                             </div>
                             <h1>Loading...</h1>
                         </div> : 

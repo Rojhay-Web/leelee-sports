@@ -67,7 +67,7 @@ module.exports = gql`
         updateLeagueStoreConfig(id:String!, minimum: Int, category: String, categorySet: [String], addons: [JSONObj]): String
         upsertLeagueLocation(id:String, name: String, merchantInfo: [JSONObj]): String
 
-        upsertStoreItems(id:String, item:JSONObj): String
+        upsertStoreItems(store_key: String, id:String, item:JSONObj): String
         deleteLeagueStoreFeatureItem(id: String!, type: String!, photoSetId: String):Boolean
     }
 

@@ -32,7 +32,9 @@ export default function TablePaginationComponent({loading, totalItems, pageSize,
     return (
         <div className={`pagination-container ${loading ? 'loading' : ''}`}>
             <div className={`page-details`}>
-                <span>{`${pageDetails.start}-${pageDetails.end} of ${totalItems}`}</span>
+                {totalItems &&
+                    <span>{`${pageDetails.start}-${pageDetails.end} of ${totalItems}`}</span>
+                }
             </div>
 
             <div className="ctrl-container">
