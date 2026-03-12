@@ -5,12 +5,14 @@ import SiteRoutes from "./Routes";
 import ContextCompose from "./context";
 import UserContext from "./context/user.context";
 import ApolloContext from "./context/apollo.context";
+import LeagueStoreContext from "./context/leaguestore.context";
 
 function App(){
     return(
         <ContextCompose items={[
             [UserContext],
             [ApolloContext],
+            [LeagueStoreContext]
           ]}>
           <SiteRoutes />
         </ContextCompose>

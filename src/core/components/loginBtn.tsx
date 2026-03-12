@@ -15,6 +15,7 @@ import { log } from "../../utils/log";
 import google_logo from '../../assets/logo/google_logo.png';
 import miles_logo from '../../assets/logo/miles_logo_c1.png';
 // TODO: ADD SITE LOGO
+import leaguestore_logo from '../../assets/logo/leeleekiddz_league_store.png';
 
 type LoginInputType = {
     email: string; password:string;
@@ -333,7 +334,7 @@ function UserAccessModal({ modalShow, closeModal }:AccessModalType){
                         </div>
                     </div>
                 </div>
-                </div> 
+            </div> 
 
             <div className="access-btn-container end">
                 <div className={`access-btn submit ${submitActive ? 'active' : 'inactive'}`} onClick={accessAction}>
@@ -379,8 +380,9 @@ function AppAccessModal({ closeModal }:AccessModalType){
                 <div className="user-name">Welcome <span>{user?.name ?? "To Our Portal"}</span></div>
             </div>
 
-            {checkUserRole('ADMIN', user?.roles) ? 
-                <div className="access-btn-container">
+             
+            <div className="access-btn-container">
+                {checkUserRole('ADMIN', user?.roles) &&
                     <Link to="/allAccess" className="access-panel-btn">
                         <img src={miles_logo} alt="Google" />
                         <div className="title-container">
@@ -390,11 +392,18 @@ function AppAccessModal({ closeModal }:AccessModalType){
 
                         <span className="material-symbols-outlined link-icon">arrow_forward_ios</span>
                     </Link>
-                </div> :
-                <div className="access-content-text">
-                    We’re so glad you’re here. This space is designed to help you stay connected, grow in faith, and engage with our church community. More exciting things to come!
-                </div>
-            }
+                }
+
+                <Link to="/leagueStore" className="access-panel-btn">
+                    <img src={leaguestore_logo} alt="Lee Lee League Store" />
+                    <div className="title-container">
+                        <h2>League Store</h2>
+                        <p>Your one-stop community hub for our local kids sports leagues while grabbing the official team gear they need to compete.</p>
+                    </div>
+
+                    <span className="material-symbols-outlined link-icon">arrow_forward_ios</span>
+                </Link>
+            </div> 
 
             <div className="modal-btn-container">
                 <div className="modal-btn sign-out" onClick={signOff}>

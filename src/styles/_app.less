@@ -137,6 +137,11 @@ body, html {
             @media @mobile-nav { margin-left: 1rem; }
         }
     }
+
+    .nav-bookend {
+        display: flex; flex-direction: row; flex: 1;
+        &.tail { justify-content: flex-end; }
+    }
 }
 
 /* Mobile Nav Menu */
@@ -437,4 +442,6 @@ body, html {
 
 /* Additional Page styles */
 @import "_home.less";
-@import "_leagueStore.less";
+@import "_leagueStore_toolbox.less";
+@import "leagueStore/_leagueStore.less";
+@import "leagueStore/login.less";

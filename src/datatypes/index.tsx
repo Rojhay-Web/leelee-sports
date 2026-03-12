@@ -1,5 +1,4 @@
 import { ColumnDef, InitialTableState } from "@tanstack/react-table";
-import { Dispatch, SetStateAction } from "react";
 
 export class User {
     _id?: string;

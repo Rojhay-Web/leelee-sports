@@ -32,6 +32,19 @@ query GetLocations {
         name
     }
 }`,
+GET_FULL_LEAGUE_QUERY = gql`
+query GetLocations {
+    leagueLocations {
+        _id
+        name
+        merchantInfo {
+            title
+            subText
+            defaultLogo
+            store_id
+        }
+    }
+}`,
 GET_SPORTS_QUERY = gql`
 query GetLeagueSports{
 	sports{
@@ -79,6 +92,12 @@ export type AddOnDrillDownInputType = {
 export type MerchantDetailsInputType = {
     fieldKey: string,
     fieldValue?: LeagueStoreMerchantInfo[],
+    setItemValue: (e:any) => void
+}
+
+export type LocationMerchantSelectInputType = {
+    fieldKey: string,
+    fieldValue?: string,
     setItemValue: (e:any) => void
 }
 
@@ -341,6 +360,70 @@ function MerchantDetailsInput({ fieldKey, fieldValue, setItemValue }: MerchantDe
                 </div>
             )}
         </div>
+    )
+}
+
+function LocationMerchantSelectInput({ fieldKey, fieldValue, setItemValue }: LocationMerchantSelectInputType) {
+    const [refreshTool, setRefreshTool] = useState(false);
+    const [selectedLocation, setSelectedLocation] = useState<LeagueLocationsType | undefined>();
+
+    const { loading: location_loading, data: location_data }= useQuery(GET_FULL_LEAGUE_QUERY, { fetchPolicy: 'no-cache' });
+
+    const toggleLocationSelect = (selection: any, add: boolean) => {
+        let tmpFieldVal = _.cloneDeep(fieldValue);
+        tmpFieldVal = (add && selection?._id) ? selection._id : null;
+        setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+
+        if(add && window.confirm("Do you want to also update the merchant information?")){
+            setItemValue({ target: { name: "merchantInfo", value: selection.merchantInfo }});
+        }
+    }
+
+    useEffect(()=>{
+        if(!location_loading && fieldValue && fieldValue.length > 0){
+            let filterLocation = location_data?.leagueLocations.filter((s: LeagueLocationsType) => s._id === fieldValue);
+            const tmpSelLoc = filterLocation?.length > 0 ? filterLocation[0] : { "_id": fieldValue, "name": "Misc League Location" };
+
+            setSelectedLocation(tmpSelLoc);
+        }
+    },[fieldValue, location_loading]);
+
+    useEffect(() => {
+        setRefreshTool(true);
+        let delayLoadTimeoutId = setTimeout(() => { setRefreshTool(false); }, 500);
+
+        return () => {
+            clearTimeout(delayLoadTimeoutId);
+        };
+    }, []);
+
+    return(
+        <>
+            {location_loading || refreshTool ? <div className="store-item-details-dropdown loading"/> :
+                <Multiselect
+                    displayValue="name"
+                    isObject={true}
+                    loading={location_loading}
+                    className="store-item-details-dropdown"
+                    singleSelect
+                    options={location_data?.leagueLocations ?? []}
+                    selectedValues={(selectedLocation ? [selectedLocation] : [])}
+                    placeholder={`Select League Location(s)`}
+                    onSelect={(_: any, selectedItem: any) => toggleLocationSelect(selectedItem, true)}
+                    onRemove={(_: any, selectedItem: any) => toggleLocationSelect(selectedItem, false)}
+                    style={{
+                        chips: {
+                            backgroundColor: 'rgba(186,142,35,1)',
+                            fontSize: '10px',
+                        },
+                        searchBox:{
+                            borderWidth:'2px', borderColor: 'rgba(170,170,170,1)',
+                            borderRadius: '8px'
+                        }
+                    }}
+                />
+            }
+        </>
     )
 }
 
@@ -1029,6 +1112,13 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
                 {(field.type === 'apparel_store_item_details') &&
                     <ApparelStoreItemDetails setItemValue={setItemDetails} fieldKey={dynamicKey} 
                         fieldValue={((item && item[field.key]) ? item[field.key] as StoreItemDetails : undefined)}
+                    />
+                }
+
+                {/* Location Merchant Toggle */}
+                {(field.type === 'location_merchant_select') &&
+                    <LocationMerchantSelectInput setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={(item ? item[field.key] as string : undefined)}
                     />
                 }
             </div>

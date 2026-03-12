@@ -656,7 +656,7 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
                     <div className="ctrl-actions">
                         <div className="action-input-container">
                             <span className="material-symbols-outlined">search</span>
-                            <input type="text" name="query" placeholder='Search Users' value={displaySearch} onChange={searchQuery} />
+                            <input type="text" name="query" placeholder='Search Store Item' value={displaySearch} onChange={searchQuery} />
                         </div>
 
                         <button className='table-action-btn' onClick={()=>{ setSelLeagueStoreItem(new LeagueStoreItemType(type)) }}>

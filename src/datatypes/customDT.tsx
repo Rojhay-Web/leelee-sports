@@ -1,7 +1,14 @@
+import { Dispatch, SetStateAction } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import * as _ from 'lodash';
 
-import { Photo } from '.';
+import { Photo, User } from '.';
+
+// Context Type
+export type LeagueStoreContextType = {
+    leagueStoreUser: LeagueStoreUserType | null;
+    setLeagueStoreUser: Dispatch<SetStateAction<LeagueStoreUserType | null>>; 
+}
 
 // Types
 export type GoogleIcons = { 
@@ -15,6 +22,15 @@ export type LeagueStoreUIConfigType = {
         logo: string;
         title: string;
     }
+}
+
+export type LeagueStoreUserType = {
+    _id?: string;
+    blueprint_id?: string;
+    blueprint_user?: User;
+
+    sub_org_name?: string;
+    organization_id?: string;
 }
 
 // Classes
@@ -135,5 +151,34 @@ export class LeagueStoreItemType {
 
         this.addons = clone_props.addons;
         this.details = clone_props.details;
+    }
+}
+
+export class OrganizationType {
+    _id?:string;
+    name?:string;
+    address?:string;
+    city?:string;
+    state?:string;
+    zip?:string;
+
+    billing_area_id?:string;
+
+    merchantInfo?:LeagueStoreMerchantInfo[];
+
+    constructor(){}
+
+    generateClone(props: OrganizationType): void {
+        // Deep Copy Data
+        const clone_props = _.cloneDeep(props);
+
+        // Clone All Base Fields
+        this.name = clone_props.name;
+        this.address = clone_props.address;
+        this.city = clone_props.city;
+        this.state = clone_props.state;
+
+        this.zip = clone_props.zip;
+        this.merchantInfo = clone_props.merchantInfo;
     }
 }

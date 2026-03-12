@@ -210,6 +210,24 @@ module.exports = function (localStore) {
                 
                 return ret;
             },
+
+            /* League Store Org - Users */
+            leagueStoreOrganizations: async(_obj, args, context, _info) => {
+                // Validate Active User
+                util.activeUserCheck(context);
+                let ret = await ls_db.organizations.search(args?.query, null, null, args?.page, args?.pageSize);
+                util.checkGQLResults(ret);
+                
+                return ret;
+            },
+            leagueStoreUsers: async(_obj, args, context, _info) => {
+                // Validate Active User
+                util.activeUserCheck(context);
+                let ret = await ls_db.users.search(args?.query, null, null, args?.page, args?.pageSize);
+                util.checkGQLResults(ret);
+                
+                return ret;
+            },
         },
         Mutation:{
             upsertUser: async(_obj, args, context, _info) => {
@@ -425,6 +443,28 @@ module.exports = function (localStore) {
 
                 return ret?.results;
             },
+
+            /* League Store Org - Users */
+            upsertLeagueStoreOrganization: async(_obj, args, context, _info) => {
+                // Validate Active User & Roles
+                util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
+
+                let ret = await ls_db.organizations.upsert(args?.id, args?.item);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+            upsertLeagueStoreUsers: async(_obj, args, context, _info) => {
+                // Validate Active User & Roles
+                util.activeUserCheck(context, []);
+
+                let ret = await ls_db.users.upsert(args?.id, args?.item);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+
+            // Delete League Store Item(s)
             deleteLeagueStoreFeatureItem: async(_obj, args, context, _info) => {
                 // Validate Active User & Roles
                 util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);

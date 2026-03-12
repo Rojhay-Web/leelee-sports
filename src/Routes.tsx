@@ -27,9 +27,13 @@ import Home from "./core/pages/home";
 import ToolBoxLayout from "./toolbox/layout";
 import ToolBoxLanding from "./toolbox/landing";
 
-/* League Store */
-import LeagueStoreLayout, { leagueStoreComponents } from "./toolbox/leagueStore/layout";
+/* Toolbox - League Store */
+import LeagueStoreToolboxLayout, { toolboxLeagueStoreComponents } from "./toolbox/leagueStore/layout";
 import LeagueLanding from "./toolbox/leagueStore/pages/landing";
+
+/* LeagueStore */
+import LeagueStoreLayout, { leagueStoreComponents } from "./leaguestore/layout";
+import LeagueStoreLanding from "./leaguestore/pages/landing";
 
 const paths = [
     { path: "*", element: NoMatch }
@@ -62,14 +66,24 @@ function SiteRoutes(){
                 <Route path="/toolbox" element={<ToolBoxLayout />}>
                     <Route index element={<ToolBoxLanding /> } />
                     {/* League Store */}
-                    <Route path="leaguestore" element={<LeagueStoreLayout />}>
+                    <Route path="leaguestore" element={<LeagueStoreToolboxLayout />}>
                         <Route index element={<LeagueLanding /> } />
 
-                        {leagueStoreComponents?.map((art: AdminPathType, i:number) =>
+                        {toolboxLeagueStoreComponents?.map((art: AdminPathType, i:number) =>
                             <Route path={art.path} element={<art.element />} key={i} />
                         )}
                         <Route path="*" element={<NoMatch />} />
                     </Route>
+                </Route>
+
+                {/* League Store */}
+                <Route path="/leaguestore" element={<LeagueStoreLayout />}>
+                    <Route index element={<LeagueStoreLanding /> } />
+
+                    {leagueStoreComponents?.map((art: AdminPathType, i:number) =>
+                        <Route path={art.path} element={<art.element />} key={i} />
+                    )}
+                    <Route path="*" element={<NoMatch />} />
                 </Route>
             </>
         ));

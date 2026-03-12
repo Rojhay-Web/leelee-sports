@@ -38,6 +38,9 @@ module.exports = gql`
         leagueLocations: [LeagueLocations]
         
         storeItems(store_key: String, query:String, active:Boolean, page:Int, pageSize: Int): PagedLeagueStoreItems
+
+        leagueStoreOrganizations(query:String, page:Int, pageSize: Int): PagedLeagueStoreOrganizations
+        leagueStoreUsers(query:String, page:Int, pageSize: Int): PagedLeagueStoreUsers
     }
 
     type Mutation {
@@ -68,6 +71,10 @@ module.exports = gql`
         upsertLeagueLocation(id:String, name: String, merchantInfo: [JSONObj]): String
 
         upsertStoreItems(store_key: String, id:String, item:JSONObj): String
+
+        upsertLeagueStoreOrganization(id:String, item:JSONObj): String
+        upsertLeagueStoreUsers(id:String, item:JSONObj): String
+
         deleteLeagueStoreFeatureItem(id: String!, type: String!, photoSetId: String):Boolean
     }
 
@@ -315,10 +322,44 @@ module.exports = gql`
         addons: [LeagueStoreAddon]
         photos:[Photo]
     }
+
+    type LeagueStoreUser {
+        _id: String!
+        blueprint_id: String
+        blueprint_user: User
+
+        sub_org_name: String
+        organization_id: String
+    }
+
+    type LeagueStoreOrganization {
+        _id: String!
+        name: String
+        address: String
+        city: String
+        state: String
+        zip: String
+
+        billing_area_id: String
+
+        merchantInfo: [LeagueStoreMerchantInfo]
+    }
     
     type PagedLeagueStoreItems {
         totalResults: Int
         pagesLeft: Boolean
         results: [LeagueStoreItem]
+    }
+
+    type PagedLeagueStoreUsers {
+        totalResults: Int
+        pagesLeft: Boolean
+        results: [LeagueStoreUser]
+    }
+
+    type PagedLeagueStoreOrganizations {
+        totalResults: Int
+        pagesLeft: Boolean
+        results: [LeagueStoreOrganization]
     }
 `;

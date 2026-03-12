@@ -422,6 +422,188 @@ module.exports = {
                 return { "error": `Upserting League Store Item`};
             }
         }
+    },
+
+    // Organizations
+    organizations: {
+        search: async function(query=null, sortType=null, sortAsc=null, page=1, pageSize=15){
+            try {
+                const collection = await dbCollection("ls_organizations");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                let safeQuery = _.escapeRegExp(query);
+                const offset = (page < 1 ? 0 : ((page - 1) * pageSize));
+                const sort = sortType && sortAsc != null ? { [sortType]: sortAsc ? 1 : -1 } : null;
+
+                const colQuery = {
+                    name: {'$regex': safeQuery, '$options' : 'i'}
+                };
+
+                const aggList = [
+                    { $match: colQuery },
+                    // Skips the first N documents
+                    { $skip: offset }
+                ];
+
+                // Limits the remaining documents to M
+                if(page > 0) {
+                    aggList.push({ $limit: pageSize });
+                }
+
+                // Sort Document By Field
+                if(sort){
+                    aggList.push({ $sort: { ...sort } });
+                }
+
+                const queryItems = await collection.aggregate(aggList).toArray();
+
+                const queryCount = await collection.countDocuments(colQuery);
+
+                return { 
+                    results: queryItems, totalResults: queryCount,
+                    pagesLeft: util.hasPagesLeft(page, pageSize, queryCount) 
+                };
+            } catch(ex){
+                log.error(`Searching League Organizations: ${ex}`);
+                return { "error": `Searching League Organizations`};
+            }
+        },
+        upsert: async function(id=null, item) {
+            try {
+                const collection = await dbCollection("ls_organizations");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                // Validate Data 
+                let param_validation = util.validateValue([
+                    { type:"text", data: item?.name, title: "name" }, 
+                    { type:"text", data: item?.address, title: "address" },
+                    { type:"text", data: item?.city, title: "city" }, 
+                    { type:"text", data: item?.state, title: "state" },
+                    { type:"text", data: item?.zip, title: "zip" } 
+                ]);
+
+                if(param_validation.length > 0){
+                    return { error: `Missing Required Field(s): ${param_validation.join(', ')}` };
+                }
+
+                // UPDATE Existing League Store Organization
+                if(id){               
+                    if("_id" in item) delete item._id;
+
+                    const result = await collection.updateOne({ _id: new ObjectId(id) }, { $set: item});
+                    return { results: (result.matchedCount ? id : null) };
+                }
+                
+                // CREATE New League Store Organization
+                const result = await collection.insertOne(item);
+
+                return { results: (result?.insertedId ?? null) }; 
+            } catch(ex){
+                log.error(`Upserting League Store Organization: ${ex}`);
+                return { "error": `Upserting League Store Organization`};
+            }
+        }
+    },
+    users: {
+        search: async function(query=null, sortType=null, sortAsc=null, page=1, pageSize=15){
+            try {
+                const collection = await dbCollection("ls_users");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                let safeQuery = _.escapeRegExp(query);
+                const offset = (page < 1 ? 0 : ((page - 1) * pageSize));
+                const sort = sortType && sortAsc != null ? { [sortType]: sortAsc ? 1 : -1 } : null;
+
+                const colQuery = {
+                    $or: [
+                        { "blueprint_user.name": {'$regex': safeQuery, '$options' : 'i'} },
+                        { "blueprint_user.email": {'$regex': safeQuery, '$options' : 'i'} },
+                    ]
+                };
+
+                const queryItems = await collection.aggregate([
+                    // Join with league_sports table to get icon by sportid
+                    { $addFields: { "full_blueprint_id": { "$toObjectId": "$blueprint_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "users", 
+                            localField: "full_blueprint_id", 
+                            foreignField: "_id", 
+                            as: "blueprint_user_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'blueprint_user': { $arrayElemAt: ['$blueprint_user_list', 0] }
+                        }
+                    },
+                    // Remove the lookup fields
+                    { $project: { 'blueprint_user_list': 0, 'full_blueprint_id': 0 } },
+
+                    // Search Users if Query exists
+                    { $match: colQuery },
+                    // Skips the first N documents
+                    { $skip: offset }, 
+                    // Limits the remaining documents to M          
+                    ...((page > 0) && { $limit: pageSize }),
+                    // Sort Document By Field
+                    ...(sort && { $sort: { ...sort } }),
+                ]).toArray();
+
+                const queryCount = await collection.countDocuments(colQuery);
+
+                return { 
+                    results: queryItems, totalResults: queryCount,
+                    pagesLeft: util.hasPagesLeft(page, pageSize, queryCount) 
+                };
+            } catch(ex){
+                log.error(`Searching League Users: ${ex}`);
+                return { "error": `Searching League USers`};
+            }
+        },
+        upsert: async function(id=null, item) {
+            try {
+                const collection = await dbCollection("ls_users");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                // Validate Data 
+                let param_validation = util.validateValue([
+                    { type:"text", data: item?.blueprint_id, title: "blueprint_id" }
+                ]);
+
+                if(param_validation.length > 0){
+                    return { error: `Missing Required Field(s): ${param_validation.join(', ')}` };
+                }
+
+                // Standardize Data
+                let setDict = cleanStoreUser(item);
+
+                // UPDATE Existing League Store User
+                if(id){               
+                    if("_id" in setDict) delete setDict._id;
+
+                    const result = await collection.updateOne({ _id: new ObjectId(id) }, { $set: setDict});
+                    return { results: (result.matchedCount ? id : null) };
+                }
+                
+                // CREATE New League Store User
+                const result = await collection.insertOne(setDict);
+
+                return { results: (result?.insertedId ?? null) }; 
+            } catch(ex){
+                log.error(`Upserting League Store User: ${ex}`);
+                return { "error": `Upserting League Store User`};
+            }
+        }
     }
 }
 
@@ -465,6 +647,18 @@ function cleanStoreItem(item) {
     return ret;
 }
 
+function cleanStoreUser(item) {
+    let ret = { ...item };
+    try {
+        delete ret?.blueprint_user;
+        delete ret?.blueprint_user_list;
+        delete ret?.full_blueprint_id;
+    } catch(ex){
+        log.error(`Cleaning Store User: ${ex}`);
+    }
+
+    return ret;
+}
 
 /* Connection Clean Up */
 const cleanup = (event) => {

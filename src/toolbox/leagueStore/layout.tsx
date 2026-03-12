@@ -12,18 +12,20 @@ import { AdminPathType, CtrlContainerType, MobileNavType, UserContextType } from
 import { log } from "../../utils/log";
 import { checkUserRoles } from "../../utils";
 
-import leeLee_logo from '../../assets/logo/logo_kiddz3.png';
+import leeLee_logo from '../../assets/logo/leeleekiddz_league_store.png';
 
 // Pages
 // import LeagueLanding from "./pages/landing";
 import SportEditor from "./pages/sportEditor";
 import LeagueStoreManager from "./pages/leagueStoreManager";
 import ApparelStoreManager from "./pages/apparelStoreManager";
+import UserAccountManager from "./pages/accountsManager";
 
-export const leagueStoreComponents: AdminPathType[] = [
+export const toolboxLeagueStoreComponents: AdminPathType[] = [
     { title: "League Sports", scope:"", icon:"sports", path:"league_sports", element: SportEditor },
     { title: "League Store Manager", scope:"", icon:"warehouse", path:"league_store", element: LeagueStoreManager },
     { title: "Apparel Store Manager", scope:"", icon:"apparel", path:"apparel_store", element: ApparelStoreManager },
+    { title: "User Accounts", scope:"", icon:"crowdsource", path:"user_accounts", element: UserAccountManager },
 ];
 
 const basePath = '/toolbox/leaguestore';
@@ -130,7 +132,7 @@ function MobileNav({ isOpen, displayComponents, selComponent, query, searchQuery
     );
 }
 
-export default function LeagueStoreLayout(){
+export default function LeagueStoreToolboxLayout(){
     const [query, setQuery] = useState("");
     const [displayComponents, setDisplayComponents] = useState<any>([]);
     const [selComponent, setSelComponent] = useState("");
@@ -156,7 +158,7 @@ export default function LeagueStoreLayout(){
         let ret = { icon: "store", title:"League Store Admin" };
             
         try {
-            const filterComp = leagueStoreComponents.filter((ac: AdminPathType) => { return `${basePath}/${ac.path}` === selComponent; });
+            const filterComp = toolboxLeagueStoreComponents.filter((ac: AdminPathType) => { return `${basePath}/${ac.path}` === selComponent; });
 
             if(selComponent?.length > 0 && filterComp?.length > 0) {
                 ret = { icon: filterComp[0].icon, title:filterComp[0].title };
@@ -170,18 +172,18 @@ export default function LeagueStoreLayout(){
     }
 
     useEffect(()=>{
-        let filterList = leagueStoreComponents.filter((comp: AdminPathType) => {
+        let filterList = toolboxLeagueStoreComponents.filter((comp: AdminPathType) => {
             const hasQuery = comp.title.toLowerCase().indexOf(query.toLowerCase()) >= 0;
             return hasQuery;
         });
 
         setDisplayComponents(filterList);
-    },[leagueStoreComponents, query]);
+    },[toolboxLeagueStoreComponents, query]);
 
     useEffect(()=>{ 
         getHeaderTitle(); 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[selComponent, leagueStoreComponents]);
+    },[selComponent, toolboxLeagueStoreComponents]);
 
     useEffect(()=>{
         setSelComponent(location?.pathname ?? "")
