@@ -4,9 +4,12 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import LeagueStoreLogin from './pages/login';
+import Leagues from './pages/leagues';
+import Apparel from './pages/apparel';
 
 import Header from './components/header';
-import Footer from './components/footer';
+import Footer from '../core/components/footer';
+// import Footer from './components/footer';
 
 import { AdminPathType } from '../datatypes';
 import { useContext, useEffect } from 'react';
@@ -15,7 +18,8 @@ import { LeagueStoreContextType } from '../datatypes/customDT';
 import leagueStoreContext from '../context/leaguestore.context';
 
 export const leagueStoreComponents: AdminPathType[] = [
-    // { title: "Leagues", scope:"", icon:"", path:"leagues", element: LeaguesComponent },
+    { title: "Leagues", scope:"", icon:"", path:"leagues", element: Leagues },
+    { title: "Apparel", scope:"", icon:"", path:"apparel", element: Apparel },
 ];
 
 export default function LeagueStoreLayout(){

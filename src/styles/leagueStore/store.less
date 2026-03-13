@@ -1,0 +1,220 @@
+.ls-store-page {
+    display: flex; flex-direction: column;
+
+    .landing {
+        position: relative;
+        padding: 8px; height: 70vh;
+        min-height: 400px;
+        
+        .img-back { 
+            width: 100%;  height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+
+            img { 
+                width: 100%; object-fit: cover; 
+                position: relative; z-index: 0;
+            }
+
+            &::before {
+                content: ''; 
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                background-color: rgba(0,0,0,0.1);
+                z-index: 1;
+            }
+
+            h1 {
+                position: absolute; 
+                bottom: -3.2rem; left: 2rem;
+                z-index: 2; font-size: 8rem;
+                margin: 0; color: #fff;
+
+                font-family: 'Bebas Neue', cursive;
+
+                @media @mobile-nav { font-size: 6rem; bottom: -2.2rem; }
+            }
+        }
+
+        @media @mobile-nav {
+            height: initial;
+        }
+    }
+
+    .store-items-container {
+        margin: 3rem 0; padding: 0 5%;
+        position: relative;
+
+        .gradient-background-container {
+            position: absolute; content: '';
+            z-index: -1;
+            position: absolute; top: -50px; left: 0;
+            width: 100%; height: calc(100% + 3rem);
+            mask-image: linear-gradient(to bottom, transparent 0%, rgb(0, 0, 0) 12.5%, rgb(0, 0, 0) 75%, transparent 100%);
+            .gradient-background {
+                width: 100%; height: 100%; opacity: 0.25;
+                // background-image: linear-gradient(to right, rgba(255,117,201, 1) 0%, transparent 70%, rgba(255,117,201, 1) 100%);
+                background-image: linear-gradient(to right, rgba(50,50,50, 1) 0%, transparent 70%, rgba(50,50,50, 1) 100%);
+            }
+        }
+    }
+}
+
+.ls-store-list-container {
+    min-height: 50vh;
+
+    .query-action-container {
+        display: flex; flex-direction: row; 
+        justify-content: center;
+        .action-input-container {  
+            background: rgba(100,100,100,0.3);
+            display: flex; flex-direction: row;
+            padding: 8px 16px; border-radius: 32px;
+            overflow: hidden; width: 50%;
+        
+            .material-symbols-outlined {             
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                color: rgba(100,100,100,1);
+            }
+        
+            input { 
+                flex: 1; margin-left: 4px; font-size: 1rem;
+                border: none; background-color: rgba(255,255,255,0);
+                font-family: 'Parkinsans', serif;
+                width: calc(100% - (1.2rem + 4px));
+        
+                &:placeholder { font-size: .8rem; }
+            }
+            
+
+            @media @mobile-device { 
+                width: calc(100% - 16px); 
+                margin-bottom: 8px; 
+            }
+        }
+    }    
+
+    .list-container {
+        display: flex; flex-direction: row; flex-wrap: wrap;
+        margin: 3rem 0;
+
+        .table-loading {
+            flex: 1; display: flex; flex-direction: row;
+            justify-content: center;
+        }
+
+        .empty-list {
+            flex: 1; font-size: 2.5rem;
+            text-align: center; color: rgba(100,100,100,0.5);
+            font-family: 'Barlow Condensed', sans-serif;
+        }
+
+        .store-item-container {
+            width: calc(25% - 16px); padding: 8px;
+            position: relative;
+
+            .item-container {
+                border-radius: 8px; height: 270px;
+                background: rgba(255,255,255,0.4);
+                backdrop-filter: blur(2px); 
+                display: flex; flex-direction: column;
+                padding: 8px; cursor: pointer;
+                transition: 0.4s all ease-in-out;
+
+                -moz-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+                -webkit-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+
+                .cover-img {
+                    border-radius: 8px; height: 150px;
+                    overflow: hidden; display: flex;
+                    flex-direction: row; justify-content: center;
+                    background-color: rgba(255,255,255,1);
+                    position: relative;
+
+                    img {
+                        object-fit: cover; width: 100%;
+                        position: relative; z-index: 0;
+
+                        &.default { 
+                            height: 100%; width: initial; 
+                        }
+                    }
+
+                    .sport-pill {
+                        position: absolute; 
+                        top: 4px; left: 4px;
+                        display: flex; flex-direction: row;
+                        backdrop-filter: blur(2px); 
+                        padding: 4px 8px; border-radius: 16px;
+                        .league-store-c1(background, 0.4);
+
+                        span {
+                            display: flex; flex-direction: column;
+                            justify-content: center;
+                            font-size: .8rem;
+
+                            &.icon { font-size: 1rem; }
+                            &+span { margin-left: 0.5rem;}
+                        }
+                    }
+                }
+
+                .item-content {
+                    display: flex; flex-direction: column;
+                    font-family: 'Barlow Condensed', sans-serif;
+                    margin-top: 0.5rem; flex: 1;
+
+                    .title {                         
+                        font-size: 1.3rem;
+                        font-weight: bold;
+                        color: rgba(100,100,100,1);
+                        overflow: hidden;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;          /* Limits the text to 3 lines */
+                        -webkit-box-orient: vertical;   /* Stacks the box's children vertically */ 
+                    }
+
+                    .date-row {
+                        display: flex; flex-direction: row;
+                        padding: 4px 0.5rem;
+                        color: @league-store-c1;
+                        margin-bottom: 8px;
+
+                        span { &+span { margin-left: 0.25rem; }}
+                    }
+
+                    .price-row {
+                        display: flex; flex-direction: row;
+                        margin-top: auto;
+
+                        .price { 
+                            font-size: 2.0rem;
+                            font-weight: bold;
+                        }
+
+                        .price-details {
+                            flex: 1; display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                            margin-left: .5rem;
+                            color: rgba(100,100,100,1);
+                            font-style: italic;
+                            font-size: 0.9rem;
+                        }
+
+                        &+.price-row { margin-top: 0; }
+                    }
+                }
+
+                &:hover { 
+                    transform: scale(1.02);
+                }
+            }
+        }
+    }
+}

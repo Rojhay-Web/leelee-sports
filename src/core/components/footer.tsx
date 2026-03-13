@@ -38,6 +38,7 @@ function Footer(){
                     <div className="link-column">                            
                         <Link className="item item-link" to="/media">Media</Link>
                         <Link className="item item-link" to="/rules">Rules</Link>
+                        <Link className="item item-link" to="/leaguestore">League Store</Link>
                     </div>
                 </div>
             </div>

@@ -96,7 +96,7 @@ export class LeagueLocationsType {
 export class StoreItemDetails {
     // LeagueItemDetails
     sport_id?: string;
-    sport_info?:string;
+    sport_info?: LeagueSportType;
     start_dt?: Date;
     end_dt?: Date;
     locations?: LeagueLocationsType[] = [];
