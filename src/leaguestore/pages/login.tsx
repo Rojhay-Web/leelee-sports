@@ -1,19 +1,20 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { gql, useLazyQuery, useQuery } from '@apollo/client';
+import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import { useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-toastify';
 
 import { log } from "../../utils/log";
-import { validateEmail, validatePasswordRequirements } from "../../utils";
+import { handleGQLError, validateEmail, validatePasswordRequirements } from "../../utils";
 
 import userContext from "../../context/user.context";
+import leagueStoreContext from "../../context/leaguestore.context";
 
 // Images
 import store_bg from '../../assets/leagueStore/store_all_long.png';
 import google_logo from '../../assets/logo/google_logo.png';
 
 import { UserContextType } from "../../datatypes";
-import { LeagueLocationsType, OrganizationType } from "../../datatypes/customDT";
+import { LeagueLocationsType, LeagueStoreContextType, OrganizationType } from "../../datatypes/customDT";
 type LoginInputType = {
     email: string; password:string;
     firstName:string; lastName: string;
@@ -91,7 +92,21 @@ query GetLocations{
     leagueLocations{
         _id
         name
+        merchantInfo {
+            store_id
+            title
+            subText
+            defaultLogo
+        }
     }
+}`,
+UPSERT_ORGANIZATION_MUTATION = gql`
+mutation UpdateOrganization($id:String, $item: JSONObj){
+    upsertLeagueStoreOrganization(id: $id, item: $item)
+}`,
+UPSERT_LS_USER_MUTATION = gql`
+mutation UpsertUser($id:String, $item: JSONObj){
+    upsertLeagueStoreUser(id: $id, item: $item)
 }`;
 
 function LoginComponent(){
@@ -369,14 +384,21 @@ function LoginComponent(){
 }
 
 function StoreUserConfig(){
+    const [submitActive, setSubmitActive] = useState(false);
     const [schoolName, setSchoolName] = useState("");
     const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(undefined);
-    const [selectedLocId, setSelectedLocId] = useState<string | undefined>(undefined);
 
     const [selectedOrg, setSelectedOrg] = useState<OrganizationType|undefined>(undefined);
 
+    const { user } = useContext(userContext.UserContext) as UserContextType;
+    const { fetchLSUser } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
+
     const { loading: loading_org, data: data_org } = useQuery(GET_ORGANIZATIONS_QUERY, { fetchPolicy: 'no-cache' });
     const { loading: loading_loc, data: data_loc } = useQuery(GET_LOCATIONS_QUERY, { fetchPolicy: 'no-cache' });
+    
+    // Mutations
+    const [insertOrganization,{ loading: org_loading, data: org_data, error: org_error }] = useMutation(UPSERT_ORGANIZATION_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
+    const [insertLSUser,{ loading: usr_loading, data: usr_data, error: usr_error }] = useMutation(UPSERT_LS_USER_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
 
     const handleChange = (e:any) =>{
         try {
@@ -386,8 +408,6 @@ function StoreUserConfig(){
                 setSchoolName(e.target.value);
             } else if(name === "selectedOrg"){              
                 setSelectedOrgId(e.target.value);
-            } else if(name === "selectedLoc"){         
-                setSelectedLocId(e.target.value);
             }
 
         } catch(ex){
@@ -410,6 +430,37 @@ function StoreUserConfig(){
         }
     }
 
+    const registration = () =>{
+        try {
+            if(selectedOrgId && selectedOrgId?.length > 0){
+                const ls_user = { 
+                    blueprint_id: user?._id,
+                    sub_org_name: schoolName,
+                    organization_id: selectedOrgId
+                };
+                
+                insertLSUser({ 
+                    variables: { id: user?._id, item: ls_user }
+                });
+            } else if(selectedOrg) {
+                const leagueLoc:LeagueLocationsType = data_loc?.leagueLocations.find((item:LeagueLocationsType) => 
+                    item._id === selectedOrg.billing_area_id
+                );
+
+                const ls_org = {
+                    ...selectedOrg,
+                    merchantInfo: leagueLoc?.merchantInfo
+                }
+
+                insertOrganization({ 
+                    variables: { id: undefined, item: ls_org }
+                });
+            }
+        } catch(ex){
+            log.error(`Registering League Store User: ${ex}`);
+        }
+    }
+
     useEffect(()=>{
         if(selectedOrgId != undefined) {
             let selOrg = new OrganizationType();
@@ -421,6 +472,65 @@ function StoreUserConfig(){
             setSelectedOrg(selOrg);
         }
     },[selectedOrgId]);
+
+    useEffect(()=>{
+        const active_school = schoolName?.length > 0;
+        
+        const active_org = selectedOrg != undefined
+            && (selectedOrg?.name != undefined && selectedOrg?.name?.length > 0)
+            && (selectedOrg?.billing_area_id != undefined && selectedOrg?.billing_area_id?.length > 0);
+
+        setSubmitActive(active_school && active_org);
+    },[schoolName, selectedOrg]);
+
+    useEffect(()=>{ 
+        if(!org_loading ){
+            if(org_error){
+                const errorMsg = JSON.stringify(org_error, null, 2);
+                console.log(errorMsg);
+
+                toast.error(`Error Adding New Orgaization: ${org_error.message}`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            } else if(org_data?.upsertLeagueStoreOrganization){
+                toast.success(`Adding New Orgaization`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+                
+                const ls_user = { 
+                    blueprint_id: user?._id,
+                    sub_org_name: schoolName,
+                    organization_id: org_data?.upsertLeagueStoreOrganization
+                };
+                
+                insertLSUser({ 
+                    variables: { id: user?._id, item: ls_user }
+                });
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[org_loading, org_data, org_error]);
+
+    useEffect(()=>{ 
+        if(!usr_loading ){
+            if(usr_error){
+                const errorMsg = JSON.stringify(usr_error, null, 2);
+                console.log(errorMsg);
+
+                toast.error(`Error Registering: ${usr_error.message}`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            } else if(usr_data?.upsertLeagueStoreUser){
+                toast.success(`Welcome To The League Store`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+
+                // Refresh LS User Check
+                fetchLSUser();
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[usr_loading, usr_data, usr_error]);
 
     return(
         <div className="ls-access-container">
@@ -455,7 +565,7 @@ function StoreUserConfig(){
                             <div className="custom-input-container sz-4">
                                 <span className="input-title">Organization Name</span>
                                 <div className="input-container">
-                                    <input type="text" name="name" value={selectedOrg?.name} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}/>
+                                    <input type="text" name="name" value={selectedOrg?.name ?? ""} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}/>
                                 </div>
                             </div>
 
@@ -463,7 +573,7 @@ function StoreUserConfig(){
                             <div className="custom-input-container sz-6">
                                 <span className="input-title">Organization Address</span>
                                 <div className="input-container">
-                                    <input type="text" name="address" value={selectedOrg?.address} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}/>
+                                    <input type="text" name="address" value={selectedOrg?.address ?? ""} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}/>
                                 </div>
                             </div>
 
@@ -472,7 +582,7 @@ function StoreUserConfig(){
                             <div className="custom-input-container sz-5">
                                 <span className="input-title">City</span>
                                 <div className="input-container">
-                                    <input type="text" name="city" value={selectedOrg?.city} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}/>
+                                    <input type="text" name="city" value={selectedOrg?.city ?? ""} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}/>
                                 </div>
                             </div>
 
@@ -480,7 +590,7 @@ function StoreUserConfig(){
                             <div className="custom-input-container sz-2">
                                 <span className="input-title">State</span>
                                 <div className="input-container">
-                                    <input type="text" name="state" value={selectedOrg?.state} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}/>
+                                    <input type="text" name="state" value={selectedOrg?.state ?? ""} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}/>
                                 </div>
                             </div>
 
@@ -488,7 +598,7 @@ function StoreUserConfig(){
                             <div className="custom-input-container sz-3">
                                 <span className="input-title">Zip</span>
                                 <div className="input-container">
-                                    <input type="text" name="zip" value={selectedOrg?.zip} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)} />
+                                    <input type="text" name="zip" value={selectedOrg?.zip ?? ""} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)} />
                                 </div>
                             </div>
 
@@ -496,7 +606,7 @@ function StoreUserConfig(){
                             <div className="custom-input-container sz-10">
                                 <span className="input-title">Billing Area</span>
                                 <div className="input-container">
-                                    <select name="billing_area_id" value={selectedOrg?.billing_area_id} onChange={handleOrgChange}>
+                                    <select name="billing_area_id" value={selectedOrg?.billing_area_id ?? ""} onChange={handleOrgChange} disabled={(selectedOrg?._id ? true : false)}>
                                         <option hidden>Select a organization billing area</option>
                                         {data_loc?.leagueLocations?.map((loc: LeagueLocationsType, i: number) =>
                                             <option value={loc?._id} key={i}>{loc.name}</option>
@@ -505,6 +615,15 @@ function StoreUserConfig(){
                                 </div>
                             </div>
                         </div>
+                    }
+                </div>
+            </div>
+
+            <div className="access-btn-container end">
+                <div className={`access-btn submit ${submitActive ? 'active' : 'inactive'}`} onClick={registration}>
+                    <span>Register</span>
+                    {(org_loading || usr_loading) &&
+                        <span className="material-symbols-outlined loading">app_badging</span>
                     }
                 </div>
             </div>

@@ -41,6 +41,7 @@ module.exports = gql`
 
         leagueStoreOrganizations(query:String, page:Int, pageSize: Int): PagedLeagueStoreOrganizations
         leagueStoreUsers(query:String, page:Int, pageSize: Int): PagedLeagueStoreUsers
+        leagueStoreUser(id:String!): LeagueStoreUser
     }
 
     type Mutation {
@@ -73,7 +74,7 @@ module.exports = gql`
         upsertStoreItems(store_key: String, id:String, item:JSONObj): String
 
         upsertLeagueStoreOrganization(id:String, item:JSONObj): String
-        upsertLeagueStoreUsers(id:String, item:JSONObj): String
+        upsertLeagueStoreUser(id:String, item:JSONObj): String
 
         deleteLeagueStoreFeatureItem(id: String!, type: String!, photoSetId: String):Boolean
     }
@@ -324,7 +325,7 @@ module.exports = gql`
     }
 
     type LeagueStoreUser {
-        _id: String!
+        _id: String
         blueprint_id: String
         blueprint_user: User
 

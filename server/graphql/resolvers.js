@@ -228,6 +228,15 @@ module.exports = function (localStore) {
                 
                 return ret;
             },
+            leagueStoreUser: async(_obj, args, _context, _info) => {
+                // Validate Active User
+                util.validateGQLParams(["id"], args);
+
+                let ret = await ls_db.users.getById(args.id);
+                util.checkGQLResults(ret);
+                
+                return ret?.results;
+            },
         },
         Mutation:{
             upsertUser: async(_obj, args, context, _info) => {
@@ -446,17 +455,17 @@ module.exports = function (localStore) {
 
             /* League Store Org - Users */
             upsertLeagueStoreOrganization: async(_obj, args, context, _info) => {
-                // Validate Active User & Roles
-                util.activeUserCheck(context, ['LEAGUE_STORE_ADMIN']);
+                // Validate Active User
+                util.activeUserCheck(context);
 
                 let ret = await ls_db.organizations.upsert(args?.id, args?.item);
                 util.checkGQLResults(ret);
 
                 return ret?.results;
             },
-            upsertLeagueStoreUsers: async(_obj, args, context, _info) => {
+            upsertLeagueStoreUser: async(_obj, args, context, _info) => {
                 // Validate Active User & Roles
-                util.activeUserCheck(context, []);
+                util.activeUserCheck(context);
 
                 let ret = await ls_db.users.upsert(args?.id, args?.item);
                 util.checkGQLResults(ret);

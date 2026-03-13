@@ -16,6 +16,11 @@ function MobileNav({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (s:boole
                 <NavLink className="m-sidenav-link" to="/rules" onClick={() => setIsOpen(false)}>Rulesbook</NavLink>
                 <NavLink className="m-sidenav-link" to="/media" onClick={() => setIsOpen(false)}>Media</NavLink>
             </div>
+
+            <div className="m-sidenav-section tail">
+                <NavLink className="m-sidenav-link mini-link" to="/leaguestore" onClick={() => setIsOpen(false)}>League Store</NavLink>
+                <a href="https://account.venmo.com/u/leeleeff" target="_blank" className="m-sidenav-link mini-link" onClick={() => setIsOpen(false)}>Donate</a>
+            </div>
         </div>
     );
 }
@@ -52,9 +57,13 @@ function Header(){
                 </div>
 
                 <div className="nav-tail">
-                    <a href="https://account.venmo.com/u/leeleeff" target="_blank" className="link-btn c2alt">
+                    <NavLink to="/leaguestore" className="link-btn mobile-icon">
+                        <span className="icon material-symbols-outlined">storefront</span>
+                        <span className="title">League Store</span>
+                    </NavLink>
+                    <a href="https://account.venmo.com/u/leeleeff" target="_blank" className="link-btn mobile-icon">
                         <span className="icon material-symbols-outlined">volunteer_activism</span>
-                        <span>Donate</span>
+                        <span className="title">Donate</span>
                     </a>
                     <div className="nav-login-btn-container">
                         <LoginBtn />

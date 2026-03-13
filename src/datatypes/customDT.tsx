@@ -6,8 +6,10 @@ import { Photo, User } from '.';
 
 // Context Type
 export type LeagueStoreContextType = {
+    leagueStoreUserLoading?: boolean,
     leagueStoreUser: LeagueStoreUserType | null;
     setLeagueStoreUser: Dispatch<SetStateAction<LeagueStoreUserType | null>>; 
+    fetchLSUser: () => void;
 }
 
 // Types

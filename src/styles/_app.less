@@ -107,7 +107,7 @@ body, html {
         .link-btn { 
             margin: auto 0;
             border-radius: 50px; padding: .5rem 1.2rem;
-            color: #fff; background: @base;
+            color: #fff; background: @base; margin-left: 1rem;
             text-decoration: none; text-align: center;
             transition: 0.4s all ease-in-out; cursor: pointer;   
             display: flex; flex-direction: row; 
@@ -117,16 +117,32 @@ body, html {
             -webkit-box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5); 
             
-            color: @color2; background: rgba(0,0,0,0); 
+            color: rgba(255,255,255,0.5); background: rgba(0,0,0,0); 
 
             .icon {
-                font-size: 1rem; margin-right: .5rem;
+                font-size: 1rem; 
+                display: flex; flex-direction: column;
+                justify-content: center;
                 transition: 0.4s all ease-in-out;
+            }
+
+            .title {
+                margin-left: .5rem;
             }
 
             &:hover { 
                 background: rgba(255,255,255,0.2);
+                color: rgba(255,255,255,1);
                 .icon { transform: translateX(-4px); } 
+            }
+
+            &.mobile-icon {
+                padding: .5rem;
+                .title {
+                    @media @mobile-nav { display: none; }
+                }
+
+                .icon { transform: initial; }
             }
         }
 
@@ -141,6 +157,10 @@ body, html {
     .nav-bookend {
         display: flex; flex-direction: row; flex: 1;
         &.tail { justify-content: flex-end; }
+
+        &.navbar-collapse { 
+            @media @mobile-nav { display: none; }
+        }
     }
 }
 
@@ -148,6 +168,7 @@ body, html {
 .noscroll { overflow: hidden; }
 .m-sidenav-container {
     display: none; position: fixed;
+    flex-direction: column;
     top:0; right:100vw;
     z-index: 1001; width: 100vw;
     height: calc(100vh - @mobileNavHeight); 
@@ -208,7 +229,7 @@ body, html {
     }
 
     &.active { right:0; }
-    @media @mobile-device { display: block; }
+    @media @mobile-device { display: flex; }
 }
 
 /* Footer */
@@ -438,6 +459,15 @@ body, html {
     to {
        background-position-x: 0%
     }
+}
+
+@keyframes rotation-back {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 /* Additional Page styles */

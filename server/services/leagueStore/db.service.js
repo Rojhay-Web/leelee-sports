@@ -565,10 +565,58 @@ module.exports = {
                 };
             } catch(ex){
                 log.error(`Searching League Users: ${ex}`);
-                return { "error": `Searching League USers`};
+                return { "error": `Searching League Users`};
             }
         },
-        upsert: async function(id=null, item) {
+        getById: async function(_id){
+            try {
+                const collection = await dbCollection("ls_users");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                const findUser = await collection.aggregate([
+                    { $match: { blueprint_id: _id } },
+                    // Join with Users Table
+                    { $addFields: { "blueprint_user_id": { "$toObjectId": "$blueprint_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "users", 
+                            localField: "blueprint_user_id", 
+                            foreignField: "_id", 
+                            as: "blueprint_user_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'blueprint_user': { $arrayElemAt: ['$blueprint_user_list', 0] }
+                        }
+                    },
+                    // Remove additional fields
+                    { 
+                        $project: { 
+                            'blueprint_user_id':0,
+                            'blueprint_user_list': 0,
+                            // Blue Print User Protected Data
+                            'blueprint_user.verified_email':0,
+                            'blueprint_user.registration_date':0,
+                            'blueprint_user.id':0,
+                            'blueprint_user.roles':0,
+                            'blueprint_user.scopes':0,
+                        } 
+                    },  
+                    // Limit to a single result
+                    { $limit: 1 }          
+                ]).toArray();
+
+                return { results: findUser?.length > 0 ? findUser[0] : null };
+            } catch(ex){
+                log.error(`Getting League User By Id: ${ex}`);
+                return { "error": `Getting League User By Id`};
+            }
+        },
+        upsert: async function(blueprint_id=null, item) {
             try {
                 const collection = await dbCollection("ls_users");
                 if(collection == null){
@@ -584,15 +632,19 @@ module.exports = {
                     return { error: `Missing Required Field(s): ${param_validation.join(', ')}` };
                 }
 
+                // Check if user exists
+                const userQuery = { blueprint_id: blueprint_id };
+                const findUser = await collection.findOne(userQuery);
+
                 // Standardize Data
                 let setDict = cleanStoreUser(item);
 
                 // UPDATE Existing League Store User
-                if(id){               
+                if(findUser){               
                     if("_id" in setDict) delete setDict._id;
 
-                    const result = await collection.updateOne({ _id: new ObjectId(id) }, { $set: setDict});
-                    return { results: (result.matchedCount ? id : null) };
+                    const result = await collection.updateOne(userQuery, { $set: setDict});
+                    return { results: (result.matchedCount ? result?.upsertedId : null) };
                 }
                 
                 // CREATE New League Store User
