@@ -1,11 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // Images
 import cover from '../../assets/leagueStore/apparel_store_cover.png';
 import StoreItemList from "../components/storeList";
+import { LeagueStoreItemType } from "../../datatypes/customDT";
 
 export default function Apparel(){
-    useEffect(()=>{ },[]);
+    const [selStoreItem, setSelStoreItem] = useState<LeagueStoreItemType|undefined>();
+    
+    useEffect(()=>{ 
+        setSelStoreItem(undefined);
+    },[]);
 
     return (
         <div className="ls-page ls-store-page">
@@ -17,7 +22,7 @@ export default function Apparel(){
             </section>
 
             <section className="store-items-container">
-                <StoreItemList type={"apparel"} />
+                <StoreItemList type={"apparel"} selStoreItem={selStoreItem} setSelStoreItem={setSelStoreItem} />
             </section>
         </div>
     );

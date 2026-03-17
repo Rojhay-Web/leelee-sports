@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { gql, useLazyQuery } from '@apollo/client';
 import { ripples } from 'ldrs';
 
@@ -6,7 +6,14 @@ import { log } from "../../utils/log";
 
 import { LeagueStoreItemType } from "../../datatypes/customDT";
 type StoreItemListType = {
-    type: string
+    type: string;
+    selStoreItem?: LeagueStoreItemType;
+    setSelStoreItem: Dispatch<SetStateAction<LeagueStoreItemType | undefined>>; 
+}
+
+type StoreItemComponentType = {
+    item: LeagueStoreItemType;
+    setSelStoreItem: Dispatch<SetStateAction<LeagueStoreItemType | undefined>>; 
 }
 
 type StoreListItemConfigType = {
@@ -84,7 +91,7 @@ const storeListItemConfig: { [key:string]: StoreListItemConfigType } = {
     }
 }
 
-function LeagueStoreItem({ item }: { item: LeagueStoreItemType}) {
+function LeagueStoreItem({ item, setSelStoreItem }: StoreItemComponentType) {
     const cover_photo =  item?.photos && item?.photos?.length > 0 ? item?.photos[0] : null;
     
     const getPrice = (val?:number) => {
@@ -101,7 +108,7 @@ function LeagueStoreItem({ item }: { item: LeagueStoreItemType}) {
     }
 
     return(
-        <div className="item-container">
+        <div className="item-container" onClick={()=> setSelStoreItem(item)}>
             <div className="cover-img">
                 {cover_photo ?
                     <img src={`${API_URL}/kaleidoscope/${cover_photo._id}`} /> :
@@ -145,7 +152,7 @@ function LeagueStoreItem({ item }: { item: LeagueStoreItemType}) {
     )
 }
 
-function ApparelStoreItem({ item }: { item: LeagueStoreItemType}) {
+function ApparelStoreItem({ item, setSelStoreItem }: StoreItemComponentType) {
     const cover_photo =  item?.photos && item?.photos?.length > 0 ? item?.photos[0] : null;
     
     const getPrice = (val?:number) => {
@@ -162,7 +169,7 @@ function ApparelStoreItem({ item }: { item: LeagueStoreItemType}) {
     }
 
     return(
-        <div className="item-container">
+        <div className="item-container" onClick={()=> setSelStoreItem(item)}>
             <div className="cover-img">
                 {cover_photo ?
                     <img src={`${API_URL}/kaleidoscope/${cover_photo._id}`} /> :
@@ -179,7 +186,7 @@ function ApparelStoreItem({ item }: { item: LeagueStoreItemType}) {
     )
 }
 
-export default function StoreItemList({ type }: StoreItemListType){
+export default function StoreItemList({ type, selStoreItem, setSelStoreItem }: StoreItemListType){
     const [displaySearch, setDisplaySearch] = useState("");
     const [query, setQuery] = useState("");
 
@@ -270,7 +277,7 @@ export default function StoreItemList({ type }: StoreItemListType){
 
                                     return(
                                         <div className="store-item-container" key={i}>
-                                            <StoreComponent item={item} />
+                                            <StoreComponent item={item} setSelStoreItem={setSelStoreItem}/>
                                         </div>
                                     )
                                 })}
