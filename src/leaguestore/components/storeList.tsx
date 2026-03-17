@@ -193,7 +193,8 @@ export default function StoreItemList({ type, selStoreItem, setSelStoreItem }: S
     const [loadDelay, setLoadDelay] = useState(false);
     const [page, setPage] = useState(1);
 
-    const pageRender = useRef(false);
+    const pageRender = useRef({query: false, storeItem: false});
+    const sectionRef = useRef<HTMLDivElement>(null);
 
     const [getStoreItems, { loading, data }] = useLazyQuery(GET_STORE_ITEM_QUERY, { fetchPolicy: 'no-cache' });
 
@@ -220,11 +221,11 @@ export default function StoreItemList({ type, selStoreItem, setSelStoreItem }: S
     }, [displaySearch]);
 
     useEffect(() => {
-        if(pageRender?.current) {
+        if(pageRender?.current?.query) {
             queryData(); 
         } 
 
-        pageRender.current = true;
+        pageRender.current.query = true;
     },[page]);
     
     useEffect(()=>{
@@ -239,16 +240,26 @@ export default function StoreItemList({ type, selStoreItem, setSelStoreItem }: S
         let delayLoadTimeoutId:NodeJS.Timeout;
 
         if(loading === false) {
-            delayLoadTimeoutId = setTimeout(() => { setLoadDelay(false); }, 500);
+            delayLoadTimeoutId = setTimeout(() => { setLoadDelay(false); }, 250);
         }
 
         return () => clearTimeout(delayLoadTimeoutId);
     },[loading]);
 
+    useEffect(()=>{
+        if(pageRender?.current?.storeItem && sectionRef.current && selStoreItem === undefined) {
+            sectionRef.current.scrollIntoView({
+                behavior: 'smooth', block: 'start',
+            });
+        }
+
+        pageRender.current.storeItem = true;
+    },[selStoreItem]);
+
     useEffect(()=>{ ripples.register(); },[]);
 
     return (
-        <div className="ls-store-list-container">
+        <div className="ls-store-list-container" ref={sectionRef}>
             {/* Search Input */}
             <div className="query-action-container">
                 <div className="action-input-container">

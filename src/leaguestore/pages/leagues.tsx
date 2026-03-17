@@ -33,7 +33,6 @@ export default function Leagues(){
                 </> :
                 <StoreMenuItem type="leagues" item={selStoreItem} setSelStoreItem={setSelStoreItem} />
             }
-            
         </div>
     );
 }

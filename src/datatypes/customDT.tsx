@@ -10,6 +10,8 @@ export type LeagueStoreContextType = {
     leagueStoreUser: LeagueStoreUserType | null;
     setLeagueStoreUser: Dispatch<SetStateAction<LeagueStoreUserType | null>>; 
     fetchLSUser: () => void;
+
+    calcLineItemSubTotal: (lineItem: QuoteLineItemType | undefined) => number;
 }
 
 // Types
@@ -182,5 +184,59 @@ export class OrganizationType {
 
         this.zip = clone_props.zip;
         this.merchantInfo = clone_props.merchantInfo;
+    }
+}
+
+export class QuoteAddOnItemType {
+    id?:number;
+    title?:string;
+    count?:number;
+    minimum?:number;
+
+    constructor(_title?: string, _minimum?: number){
+        this.title = _title;
+        this.minimum = _minimum;
+        this.count = _minimum;
+    }
+}
+
+export class LineItemDetailIndItemType {
+    item_number?:number;
+    item_title?:string;
+    item_category_sel?:string;
+
+    constructor(){}
+}
+
+export class QuoteLineItemType {
+    _id?:string;
+    item_count?: number;
+    overall_category_sel?:string;
+    item_additional_details?:string;
+
+    // Add On List
+    add_on_list?: QuoteAddOnItemType[];
+
+    // Custom Design Details
+    design_name?: string;
+    design_description?: string;
+    design_img?: string;
+
+    // Individual Item Details
+    custom_item_list?: LineItemDetailIndItemType[];
+
+    // Store Item Details
+    store_item?: LeagueStoreItemType;
+
+    constructor(_store_item:LeagueStoreItemType){
+        // Deep Copy Data
+        const clone_props = _.cloneDeep(_store_item);
+        
+        // Clean Unnessary params
+        delete clone_props?.photos;
+
+        // Set Default Items
+        this.store_item = clone_props;
+        this.item_count = clone_props?.minimum ?? 0;
     }
 }
