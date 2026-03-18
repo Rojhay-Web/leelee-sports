@@ -1,6 +1,7 @@
-import { Dispatch, SetStateAction, useContext, useEffect, useState } from "react";
+import { CSSProperties, Dispatch, SetStateAction, useContext, useEffect, useRef, useState } from "react";
+import Resizer from "react-image-file-resizer";
 
-import { LeagueStoreAddon, LeagueStoreContextType, LeagueStoreItemType, QuoteAddOnItemType, QuoteLineItemType } from "../../datatypes/customDT";
+import { LeagueStoreAddon, LeagueStoreContextType, LeagueStoreItemType, LineItemDetailIndItemType, QuoteAddOnItemType, QuoteLineItemType } from "../../datatypes/customDT";
 type StoreMenuItemType = {
     type: string;
     item?: LeagueStoreItemType;
@@ -9,6 +10,11 @@ type StoreMenuItemType = {
 type AddOnToolType = {
     defaultAddOns?: LeagueStoreAddon[];
     selectedAddOns?: QuoteAddOnItemType[];
+    setLineItem: Dispatch<SetStateAction<QuoteLineItemType | undefined>>;
+}
+
+type CustomItemListToolType = {
+    lineItem?: QuoteLineItemType;
     setLineItem: Dispatch<SetStateAction<QuoteLineItemType | undefined>>;
 }
 
@@ -41,6 +47,7 @@ const formatter = new Intl.NumberFormat('en-US', {
 
 // Images
 import default_img from '../../assets/logo/leeleekiddz_league_store.png';
+import { Column, ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 
 function AddOnTool({ defaultAddOns, selectedAddOns, setLineItem }:AddOnToolType){
     const [openToggle, setOpenToggle] = useState(false);
@@ -114,6 +121,281 @@ function AddOnTool({ defaultAddOns, selectedAddOns, setLineItem }:AddOnToolType)
                                     <span className="price">+ {calcPrice(addon.minimum, addon.price)}</span>
                                 </div>
                             )}
+                        </div>
+                    }
+                </>
+            }
+        </div>
+    );
+}
+
+function CustomItemListTool({lineItem, setLineItem }:CustomItemListToolType){
+    const [openToggle, setOpenToggle] = useState(false);
+    const [displayList, setDisplayList] = useState<LineItemDetailIndItemType[]>([])
+    const [columns] = useState<ColumnDef<LineItemDetailIndItemType>[]>([
+        { 
+            id:"item_number",
+            header: '#', accessorKey: 'item_number', 
+            size: 50,
+            cell: ({ row }: { row: any }) => { 
+                return <div className="dd_table_cell">
+                    <input type="number" name="item_number" value={row.original.item_number} onChange={(e) => updateRowField(row.index, e)} />
+                </div>
+            }
+        },
+        { 
+            id:"item_title",
+            header: 'Name', accessorKey: 'item_title', 
+            cell: ({ row }: { row: any }) => { 
+                return <div className="dd_table_cell">
+                    <input type="text" name="item_title" value={row.original.item_title} onChange={(e) => updateRowField(row.index, e)} />
+                </div>
+            }
+        },
+        { 
+            id:"item_category_sel",
+            header: `${lineItem?.store_item?.category ?? 'Size'}`, 
+            accessorKey: 'item_category_sel', size: 100,
+            cell: ({ row }: { row: any }) => { 
+                return <div className="dd_table_cell">
+                    <select name="item_category_sel" value={row.original.item_category_sel} onChange={(e) => updateRowField(row.index, e)}>
+                        <option hidden>Select A {lineItem?.store_item?.category ?? 'Size'}</option>
+                        {lineItem?.store_item?.categorySet?.map((cs, i) =>
+                            <option value={cs} key={i}>{cs}</option>
+                        )}
+                    </select>
+                </div>
+            }
+        },
+    ]);
+
+    const table = useReactTable({
+        data: displayList,
+        columns,
+        initialState: {},
+        state: {},
+        getCoreRowModel: getCoreRowModel(),
+        debugTable: false, debugHeaders: false, debugColumns: false,
+        columnResizeMode: "onChange",
+    });
+
+    const getCommonPinningStyles = (column: Column<LineItemDetailIndItemType>): CSSProperties => {
+        const isPinned = column.getIsPinned();
+        const isLastPinned = isPinned === "left" && column.getIsLastColumn("left");
+        const width = column.getSize();
+
+        return {
+            width: width <= 25 ? 'initial' : column.getSize(),
+            position: isPinned ? "sticky" : "relative",
+            left: isPinned === "left" ? `${column.getStart("left")}px` : undefined,
+            zIndex: isPinned ? 1 : 0,
+            boxShadow: isLastPinned ? "rgba(170, 170, 170, 0.3) 4px 0px 4px -2px" : undefined
+        };
+    }
+
+    const updateRowField = (index: number, e: any) => {
+        let name = e.target.name;
+        setDisplayList((p) =>{
+            let tmpList: any[] = [...p];
+            if(index < tmpList?.length){
+                tmpList[index][name] = e.target.value;
+            }
+
+            return tmpList;
+        });
+    }
+
+    useEffect(()=> {
+        if(lineItem?.item_count){
+            setDisplayList((p) =>{
+                let tmpList = [...p];
+                if(lineItem?.item_count && lineItem.item_count != tmpList.length){
+                    if(lineItem.item_count > tmpList.length){
+                        // ADD Items
+                        const diff = (lineItem.item_count - tmpList.length);
+
+                        for(let i=0; i < diff; i++){
+                            tmpList.push(new LineItemDetailIndItemType());
+                        }
+                    } else if(lineItem.item_count < tmpList.length){
+                        // REMOVE Items
+                        const diff =  tmpList.length - lineItem.item_count;
+
+                        for(let i=0; i < diff; i++){
+                            tmpList.pop();
+                        }
+                    }
+                }
+
+                return tmpList;
+            });
+        }
+    },[lineItem?.item_count]);
+
+    useEffect(()=>{
+        if(displayList){
+            setLineItem((p) =>{
+                return { ...p, "custom_item_list": displayList };
+            });
+        }
+    },[displayList]);
+
+    useEffect(()=>{
+        if(lineItem?.custom_item_list){
+            setDisplayList(lineItem.custom_item_list);
+        } 
+    },[]);
+
+    return(
+        <div className="str-drill-down-container">
+            {lineItem?.store_item?.details?.customDesign === true &&
+                <>
+                    <div className="header-container" onClick={()=> setOpenToggle(p => !p)}>
+                        <div className="header-text">
+                            <span>Individual Item Designs</span>
+                        </div>
+                        <span className="icon material-symbols-outlined">{openToggle ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+                    </div>
+
+                    {openToggle &&
+                        <div className="drill-list-container sm-padding">
+                            <table className="drill-down-table" style={{ width: table.getTotalSize() }}>
+                                <thead>
+                                    {table.getHeaderGroups().map((headerGroup) => (
+                                        <tr key={headerGroup.id}>
+                                            {headerGroup.headers.map((header) => {
+                                                return(
+                                                    <th key={header.id} colSpan={header.colSpan}
+                                                        style={{ ...getCommonPinningStyles(header.column) }}
+                                                    >
+                                                        <div className={`dd-header-container ${header.column.getCanSort() ? 'sortable' : ''}`} onClick={header.column.getToggleSortingHandler()}>
+                                                            {flexRender(
+                                                                header.column.columnDef.header,
+                                                                header.getContext(),
+                                                            )}
+                                                        </div>
+                                                    </th>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </thead>
+                                <tbody>
+                                    {table.getRowModel().rows.map((row, idx) => {
+                                        return (
+                                            <tr key={row.id} style={{ zIndex: table.getRowModel().rows.length - idx }}>
+                                                {row.getVisibleCells().map((cell) => {
+                                                    return (
+                                                        <td key={cell.id}
+                                                            style={{ ...getCommonPinningStyles(cell.column) }}
+                                                        >
+                                                            {flexRender(
+                                                                cell.column.columnDef.cell,
+                                                                cell.getContext(),
+                                                            )}
+                                                        </td>
+                                                    )
+                                                })}
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </>
+            }
+        </div>
+    )
+}
+
+function CustomDesignTool({lineItem, setLineItem }:CustomItemListToolType){
+    const [openToggle, setOpenToggle] = useState(false);
+
+    const photoRef = useRef<HTMLInputElement>(null);
+
+    const handleChange = (e: any) => {
+        let name = e.target.name;
+
+        setLineItem((p) =>{
+            return { ...p, [name]: e.target.value };
+        });
+    }
+
+    const clearImg = (e:any) => {
+        handleChange({ target: { name: "design_img", value: null }});
+        e.stopPropagation();
+    }
+
+    const setImageFile = (e:any) => {
+        try {
+            if (e.target.files[0]) {
+                Resizer.imageFileResizer(e.target.files[0],
+                    400, 400, "JPEG", 50, 0,
+                    (uri) => { 
+                        handleChange({ target: { name: e.target.name, value: uri }});
+                        // Clear Target Value
+                        e.target.value = null;
+                    },
+                    "base64", 200, 200
+                );
+            }
+        } catch(ex){
+            log.error(`Setting Image File: ${ex}`);
+        }
+    }
+
+    const handleClick = () => {
+        if(photoRef.current) {
+            photoRef.current.click();
+        }
+    }
+
+    return(
+        <div className="str-drill-down-container">
+            {lineItem?.store_item?.details?.customDesign === true &&
+                <>
+                    <div className="header-container" onClick={()=> setOpenToggle(p => !p)}>
+                        <div className="header-text">
+                            <span>Custom Design</span>
+                        </div>
+                        <span className="icon material-symbols-outlined">{openToggle ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}</span>
+                    </div>
+
+                    {openToggle &&
+                        <div className="drill-list-container row-view">
+                            <div className="img-container">
+                                <div className="item-img-container" onClick={handleClick}>
+                                    <span className={`icon material-symbols-outlined ${lineItem?.design_img ? 'highlight' : ''}`}>add_a_photo</span>
+                                    {lineItem?.design_img && 
+                                        <>
+                                            <div className="delete-img" onClick={clearImg}>
+                                                <span className="material-symbols-outlined">delete_forever</span>
+                                            </div>
+                                            <img src={lineItem?.design_img} alt="Custom Design Image" />
+                                        </>
+                                    }
+                                    <input className='hiddenInput' type="file" accept="image/*" name="design_img" ref={photoRef} onChange={setImageFile} />
+                                </div>
+                            </div>
+
+                            <div className="content-container">
+                                <div className="category-section">
+                                    <div className="section-title">Team Name</div>
+
+                                    <div className="input-container">
+                                        <input type="text" name="design_name" value={lineItem?.design_name} onChange={handleChange}/>
+                                    </div>
+                                </div>
+
+                                <div className="category-section">
+                                    <div className="section-title">Design Notes</div>
+
+                                    <div className="input-container">
+                                        <textarea name="design_description" value={lineItem?.design_description} rows={2} onChange={handleChange}/>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     }
                 </>
@@ -342,6 +624,9 @@ export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenu
                             </div>
                         }
 
+                        {/* Custom Design Details */}
+                        <CustomDesignTool lineItem={editLineItem} setLineItem={setEditLineItem}/>
+
                         <div className="quantity-count-container">
                             <div className="quantity-count">
                                 <button disabled={(!editLineItem?.item_count || !item?.minimum) || (editLineItem?.item_count <= item?.minimum)} onClick={()=> toggleCount(false)}>
@@ -359,11 +644,15 @@ export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenu
                             <span className="title">{menuDetails?.quantityTitle ?? 'Quantity'}*</span>
                         </div>
 
+                        {/* Custom Line Item List */}
+                        <CustomItemListTool lineItem={editLineItem} setLineItem={setEditLineItem} />
+
+                        {/* Additional Details */}
                         <div className="category-section">
                             <div className="section-title">Additional Details</div>
 
                             <div className="input-container">
-                                <textarea name="item_additional_details" value={editLineItem?.item_additional_details} rows={2} />
+                                <textarea name="item_additional_details" value={editLineItem?.item_additional_details} rows={2} onChange={handleChange} />
                             </div>
                         </div>
 

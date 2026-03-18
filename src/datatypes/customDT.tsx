@@ -201,11 +201,15 @@ export class QuoteAddOnItemType {
 }
 
 export class LineItemDetailIndItemType {
-    item_number?:number;
+    item_number?:number | string;
     item_title?:string;
     item_category_sel?:string;
 
-    constructor(){}
+    constructor(){
+        this.item_number = "";
+        this.item_title = "";
+        this.item_category_sel = "";
+    }
 }
 
 export class QuoteLineItemType {

@@ -39,7 +39,7 @@
         }
 
         @media @mobile-nav {
-            height: initial;
+            height: initial; min-height: 180px;
         }
     }
 
@@ -215,6 +215,10 @@
                     transform: scale(1.02);
                 }
             }
+
+            @media @mobile-device {
+                width: calc(100% - 16px);
+            }
         }
     }
 }
@@ -260,7 +264,7 @@
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 
         .selected-image-container {
-            width: 50%;
+            width: 50%; min-width: 50%;
             border-radius: 8px;
             min-height: 350px;
             overflow: hidden;
@@ -269,6 +273,8 @@
                 width: 100%;
                 min-height: 100%;
             }
+
+            @media @mobile-device { width: 100%; }
         }
 
         .details-content {
@@ -278,6 +284,8 @@
             h1 { 
                 margin: 0; 
                 font-family: 'Barlow Condensed', sans-serif;
+
+                @media @mobile-device { text-align: center; }
             }
 
             .price-details-container {
@@ -303,6 +311,11 @@
                     }
 
                     &+.price-row { margin-top: 0; }
+
+                    @media @mobile-device { 
+                        justify-content: center; 
+                        .price-details { flex: initial; }
+                    }
                 }
             }
 
@@ -373,7 +386,14 @@
                         &+.set-list-photo { margin-left: 0.5rem; }
                     }
                 }
+
+                @media @mobile-device { order: -1; }
             }
+        }
+
+        @media @mobile-device { 
+            flex-direction: column; 
+            height: initial;
         }
     }
 
@@ -498,6 +518,9 @@
                     margin-top: 0.5rem; padding: 4px 1rem;
                     display: flex; flex-direction: column;
 
+                    &.sm-padding { padding: 4px .25rem; }
+                    &.row-view { flex-direction: row; }
+
                     .drill-list-item {
                         display: flex; flex-direction: row;
                         padding: 8px 0; opacity: 0.5;
@@ -529,11 +552,165 @@
                             .check-bx { background-color:@league-store-c1; }
                         }
                     }
+
+                    .drill-down-table {
+                        min-width: 100%; border-spacing: 0;
+                        font-size: .9rem; border-radius: 8px;
+                        overflow: hidden;
+
+                        thead { position: sticky; top: 0; z-index: 50; }
+
+                        th {
+                            background-color: #fff;
+                            border-bottom: 2px solid @league-store-c2; 
+                            font-weight: bold; position: relative;
+                            text-align: center; padding: 8px;
+
+                            .dd-header-container {
+                                display: flex; flex-direction: row;
+                                justify-content: center; 
+                                position: relative;
+
+                                span { 
+                                    position: absolute; right: 0;
+                                    font-size: 16px; top: 50%;
+                                    transform: translateY(-50%);
+                                }
+
+                                &.sortable { cursor: pointer; }
+                            }
+
+                            &::before {
+                                content: ''; position: absolute;
+                                left: 0; top: 0; width: 100%;
+                                height: 100%; z-index: -1;
+                                background-color: rgba(186,142,35,0.2);
+                            }
+                            &.empty-header { &::before { z-index: 1; } }
+                            &+th { border-left: 2px solid @league-store-c2; }
+                        }
+
+                        tr {
+                            position: relative;
+
+                            td {
+                                text-align: center;
+                                background-color: #fff;
+
+                                .dd_table_cell {
+                                    border: 1px solid rgba(100,100,100,0.2); 
+                                    display: flex; flex-direction: row;
+                                    overflow: hidden; border-radius: 4px;
+                                    overflow: hidden;
+
+                                    input, select { 
+                                        flex: 1; border: none; 
+                                        font-size: 0.8rem; width: 100%;
+                                        background: transparent; 
+                                        padding: 4px; border-radius: 4px;
+                                    }
+                                }
+
+                                button {
+                                    all: unset; cursor: pointer;
+                                    
+                                }
+                            }
+                            &+tr { td { border-top: 1px solid rgba(150,150,150,0.5); } }
+                        }
+                    }
+
+                    .img-container {
+                        flex: 1; padding-right: 1rem;
+                        max-height: 125px;
+
+                        .item-img-container {
+                            border-radius: 8px; background: rgba(200,200,200,1);
+                            height: calc(100% - 4px); position: relative; cursor: pointer;
+                            overflow: hidden; border: 2px solid rgba(200,200,200,0.5);
+
+                            .icon {
+                                position: absolute;
+                                top: 50%; left: 50%;
+                                transform: translate(-50%, -50%);
+                                font-size: 40px; z-index: 10;
+
+                                color: rgba(150,150,150,0.7);
+
+                                &.highlight { color: @league-store-c1; }
+                            }
+
+                            .delete-img {
+                                position: absolute;
+                                top: 0; right: 0;
+                                width: 30px; height: 30px;
+                                border-bottom-left-radius: 50%;
+                                cursor: pointer; z-index: 2;
+                                background-color: rgba(200,200,200,1);
+                                transition: 0.2s all ease-in-out;
+                                display: flex; flex-direction: column;
+                                justify-content: center; align-items: center;
+                                opacity: 0.7;
+
+                                span { 
+                                    color: rgba(250,100,100,1); margin: auto;
+                                    font-size: 20px;
+                                }
+
+                                &:hover { background-color: rgba(50,50,50,1); opacity: 1; }
+                            }
+
+                            img { 
+                                position: relative; z-index: 1;
+                                width: 100%; height: 100%;
+                                object-fit: cover; opacity: 0.7;
+                                margin: auto;
+                            }
+
+                            .hiddenInput { display: none; }
+                        }
+                    }
+
+                    .content-container {
+                        display: flex; flex-direction: column;
+                        flex: 1;
+
+                        .category-section {
+                            position: relative; text-align: left;
+
+                            .section-title {
+                                color: #000; font-size: 1rem; font-weight: bold;
+                                font-family: 'Barlow Condensed', sans-serif;
+                                font-size: 1rem; font-weight: bold;
+                            }
+
+                            .input-container {
+                                border: 1px solid @admin-color3; border-radius: 8px;
+                                display: flex; flex-direction: row; padding: 4px 8px;
+                                margin-top: 4px; overflow: hidden;
+
+                                input, textarea { 
+                                    flex: 1; border: none; 
+                                    font-size: 0.8rem; width: 100%;
+                                    background: transparent; 
+                                    resize: none;
+
+                                    &:disabled {
+                                        -webkit-appearance: none; /* For Chrome, Safari, newer Opera, and Edge */
+                                        -moz-appearance: none;    /* For Firefox */
+                                        appearance: none;
+                                    }
+                                }
+                            }
+
+                            &+.category-section { margin-top: 1rem; }
+                        }
+                    }
                 }
+
+                &+.category-section { margin: 16px 0 8px; }
             }
         }
-
-        
 
         .btn-container {
             display: flex; flex-direction: row;
@@ -561,6 +738,10 @@
 
                 &:hover:not(:disabled) { background-color: lighten(@league-store-c2, 10%);}
             }
+        }
+
+        @media @mobile-device {
+            margin: 8px 1rem;
         }
     }
 }
