@@ -1,0 +1,168 @@
+.ls-store-cart {
+    display: flex; flex-direction: column;
+    padding: 0 2rem;
+
+    .page-title {
+        font-family: 'Bebas Neue', cursive;
+        font-size: 3rem; margin-top: 0;
+
+        color:@league-store-c3;
+    }
+
+    .cart-tab-container-wrapper {
+        border-radius: 37px;
+        background-color: #f4f4f4;
+        padding: 8px; width: 100%;
+        max-width: 316px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .cart-tab-container {
+        position: relative;
+        text-align: center;
+
+        &:after {
+            content: ""; position: absolute;
+            width: 50%; top: 0;
+            transition: left cubic-bezier(.88, -.35, .565, 1.35) .4s;
+            border-radius: 27.5px;
+            box-shadow: 0 2px 15px 0 rgba(0, 0, 0, .1);
+            background-color: @league-store-c1;
+            height: 100%;
+            z-index: 0;
+        }
+
+        &.left {
+            &:after { left: 0; }
+        }
+
+        &.right {
+            &:after { left: 50%; }
+        }
+
+        .cart-tab {
+            all: unset;
+            display: inline-block;
+            width: 50%;
+            padding: 8px 0;
+            z-index: 1;
+            position: relative;
+            cursor: pointer;
+            transition: color 200ms;
+            font-size: 16px;
+            font-weight: bold;
+            line-height: normal;
+            user-select: none;
+
+            &.active { color: #ffffff; }
+        }
+    }
+
+    .cart-details-container {
+        display: flex; flex-direction: row;
+        padding: 8px; margin: 2rem 0;
+
+        .cart-line-items-container { 
+            flex: 1; display: flex;
+            flex-direction: column;
+            padding: 0 1rem;
+
+            .cart-line-item {
+                padding: 1rem 0.5rem; 
+                display: flex; 
+                flex-direction: row;
+
+                .cart-img-container { 
+                    display: flex;
+                    flex-direction: column;
+
+                    .cart-img {
+                        overflow: hidden;
+                        border-radius: 8px;
+                        width: 300px; 
+                    }
+                    img { 
+                        width: 100%; min-height: 100%;
+                        object-fit: cover;
+                    }
+                }
+
+                .line-item-table {
+                    flex: 1; padding: 0 0.5rem;
+                    tr {
+                        td { 
+                            vertical-align: top;
+                            .content-details {
+                                padding: 0 .5rem; display: flex;
+                                flex-direction: column;
+
+                                .title { 
+                                    font-weight: bold; font-size: 1.2rem; 
+                                }
+
+                                .date-row {
+                                    display: flex; flex-direction: row;
+                                    font-size: 0.8rem; padding: 2px 4px;
+                                    color: @league-store-c2;
+                                    span { &+span { margin-left: 0.25rem; }}
+                                }
+
+                                .sub-detail-container {
+                                    padding: 4px; table-layout: auto;
+                                    width: 350px;
+
+                                    .sdr-row {
+                                        font-size: 0.8rem;
+                                        .sdr-title { font-weight: bold; }
+                                        .count-price { 
+                                            text-align: right; 
+                                            padding-left: 100px;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            &.price {
+                                width: 50px; text-align: right;
+                                font-size: 1.2rem;
+                                font-weight: bold;
+
+                                .price-breakdown {
+                                    display: flex; 
+                                    flex-direction: column;
+
+                                    .discounted { 
+                                        text-decoration: line-through; 
+                                        opacity: 0.5;
+                                    }
+
+                                    .discounted-price {
+                                        font-size: 1rem;
+                                        text-align: center;
+                                        color: rgba(100,0,0,1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                &+.cart-line-item { border-top: 1px solid rgba(50,50,50,0.2); }
+            }
+        }
+
+        .cart-invoice-details-container { 
+            width: 300px; height: 450px;
+            margin: 8px 2rem 8px 0; 
+            border-radius: 8px; padding: 8px;
+            background: rgba(240,240,240,1);
+            display: flex; flex-direction: column;
+            position: relative;
+
+            -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+    }
+}

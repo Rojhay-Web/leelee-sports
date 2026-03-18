@@ -74,6 +74,10 @@ function Header(){
                     <NavLink className={'nav-item nav-link'} to="/leaguestore?org_setting=true">
                         <span className="material-symbols-outlined">tv_options_input_settings</span>
                     </NavLink>
+
+                    <NavLink className={navActivityClass} to="/leaguestore/cart">
+                        <span className="material-symbols-outlined">shopping_cart</span>
+                    </NavLink>
                 </div>
 
                 <button className="navbar-toggler" type="button" aria-label="Toggle navigation" onClick={() => setSidebarDisplay(true)}>
