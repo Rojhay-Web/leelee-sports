@@ -1,19 +1,36 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import StoreItemList from "../components/storeList";
+import StoreMenuItem from "../components/storeMenuItem";
 
-import { LeagueStoreItemType } from "../../datatypes/customDT";
+import { LeagueStoreContextType, LeagueStoreItemType } from "../../datatypes/customDT";
+
+import leagueStoreContext from '../../context/leaguestore.context';
 
 // Images
 import cover from '../../assets/leagueStore/league_store_cover.png';
-import StoreMenuItem from "../components/storeMenuItem";
+
 
 export default function Leagues(){
+    const [searchParams] = useSearchParams();
     const [selStoreItem, setSelStoreItem] = useState<LeagueStoreItemType|undefined>();
 
+    const { getLineItem } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
+
     useEffect(()=>{ 
-        setSelStoreItem(undefined);
-    },[]);
+        const page_item = searchParams.get("item");
+        let store_item = undefined;
+
+        if(page_item) {
+            let line_item = getLineItem('leagues', page_item);
+
+            if(line_item?.store_item) {
+                store_item = line_item.store_item;
+            }
+        }
+        setSelStoreItem(store_item);
+    },[searchParams]);
 
     return (
         <div className="ls-page ls-store-page">

@@ -1,4 +1,6 @@
 import { CSSProperties, Dispatch, SetStateAction, useContext, useEffect, useRef, useState } from "react";
+import { Column, ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
+import { useSearchParams } from "react-router-dom";
 import Resizer from "react-image-file-resizer";
 import { toast } from "react-toastify";
 
@@ -48,7 +50,6 @@ const formatter = new Intl.NumberFormat('en-US', {
 
 // Images
 import default_img from '../../assets/logo/leeleekiddz_league_store.png';
-import { Column, ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 
 function AddOnTool({ defaultAddOns, selectedAddOns, setLineItem }:AddOnToolType){
     const [openToggle, setOpenToggle] = useState(false);
@@ -406,6 +407,8 @@ function CustomDesignTool({lineItem, setLineItem }:CustomItemListToolType){
 }
 
 export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenuItemType){
+    const [searchParams] = useSearchParams();
+    
     const [selPhotoIdx, setSelPhotoIdx] = useState(-1);
     const [selImg, setSelImg] = useState<string|undefined>(undefined);
     const [menuDetails, setMenuDetails] = useState(storeMenuPageDetails['leagues']);
@@ -414,7 +417,7 @@ export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenu
     const [errorList, setErrorList] = useState<string[]>([]);
     const [itemTotal, setItemTotal] = useState(0);
 
-    const { calcLineItemSubTotal, addLineItem } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
+    const { calcLineItemSubTotal, addLineItem, getLineItem } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
     
     const travesePhotoSet = (dir: number) => {
         if(dir < 0 && selPhotoIdx > 0){
@@ -492,7 +495,7 @@ export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenu
                 setSelStoreItem(undefined);
 
                 // Success Toast
-                toast.success(`Added Line Item`, { position: "top-right",
+                toast.success(`${(editLineItem?.quote_item_id) ? 'Updated' : 'Added'} Line Item`, { position: "top-right",
                     autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
                     draggable: true, progress: undefined, theme: "light" });
             }
@@ -533,6 +536,15 @@ export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenu
             setItemTotal(li_totals.core_total + li_totals.addon_total);
         }
     },[editLineItem]);
+
+    useEffect(()=>{
+        const page_item = searchParams.get("item");
+        if(page_item) {
+            let line_item = getLineItem(type, page_item);
+
+            setEditLineItem(line_item);
+        }
+    },[searchParams]);
 
     return (
         <div className="store-menu-item-container">
@@ -678,7 +690,7 @@ export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenu
 
                 <div className="btn-container">
                     <button className="add-btn" disabled={errorList?.length > 0} onClick={upsertLineItem}>
-                        <span className="title">Add To Quote</span>
+                        <span className="title">{editLineItem?.quote_item_id ? 'Update Item':  'Add To Quote'}</span>
 
                         <span className="price">({getPrice(itemTotal)})</span>
                     </button>

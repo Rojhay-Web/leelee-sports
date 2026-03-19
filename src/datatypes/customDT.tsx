@@ -20,6 +20,7 @@ export type LeagueStoreContextType = {
     addLineItem: (lineItem: QuoteLineItemType) => void;
     removeLineItem: (type:string, quote_item_id: string) => void;
     clearingLineItems: (type:string) => void;
+    getLineItem: (type:string, quote_item_id: string) => QuoteLineItemType | undefined;
 }
 
 // Types

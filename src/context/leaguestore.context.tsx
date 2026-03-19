@@ -92,27 +92,53 @@ function Provider({ children }: { children: any }) {
     const addLineItem = (lineItem: QuoteLineItemType) => {
         try {
             let clone_line_item = _.cloneDeep(lineItem);
-            clone_line_item.quote_item_id = uuidv4();
-
+            
             // Set Cart Selected Tab based on last item added
             if(clone_line_item?.store_item?.store_id){
                 setSelectedCartTab(clone_line_item?.store_item?.store_id);
             }
 
-            setStoreLineItems((p)=>{
-                let tmpStore = {...p};
+            if(clone_line_item.quote_item_id) {
+                // Update Existing Line Item
+                setStoreLineItems((p)=>{
+                    let tmpStore = {...p };
+                    
+                    switch(clone_line_item?.store_item?.store_id){
+                        case "leagues":
+                            const league_index = tmpStore.leagues.findIndex(item => item.quote_item_id === clone_line_item.quote_item_id);
+                            if(league_index >= 0) {
+                                tmpStore.leagues[league_index] = clone_line_item;
+                            }
+                            break;
+                        case "apparel":
+                            const apparel_index = tmpStore.apparel.findIndex(item => item.quote_item_id === clone_line_item.quote_item_id);
+                            if(apparel_index >= 0) {
+                                tmpStore.apparel[apparel_index] = clone_line_item;
+                            }
+                            break;
+                    }
 
-                switch(clone_line_item?.store_item?.store_id){
-                    case "leagues":
-                        tmpStore.leagues.push(clone_line_item);
-                        break;
-                    case "apparel":
-                        tmpStore.apparel.push(clone_line_item);
-                        break;
-                }
+                    return tmpStore;
+                });
+            } else { 
+                // Add New Line Item
+                clone_line_item.quote_item_id = uuidv4();
 
-                return tmpStore;
-            });
+                setStoreLineItems((p)=>{
+                    let tmpStore = {...p };
+
+                    switch(clone_line_item?.store_item?.store_id){
+                        case "leagues":
+                            tmpStore.leagues.push(clone_line_item);
+                            break;
+                        case "apparel":
+                            tmpStore.apparel.push(clone_line_item);
+                            break;
+                    }
+
+                    return tmpStore;
+                });
+            }           
         } catch(ex){
             log.error(`Adding Line Item: ${ex}`);
         }
@@ -165,6 +191,21 @@ function Provider({ children }: { children: any }) {
         }
     }
 
+    // []-> Exported
+    const getLineItem = (type: string, quote_item_id: string) => {
+        let ret = undefined;
+
+        switch(type){
+            case "leagues":
+                ret = storeLineItems.leagues.find((tl) => tl.quote_item_id === quote_item_id);
+                break;
+            case "apparel":
+                ret = storeLineItems.apparel.find((tl) => tl.quote_item_id === quote_item_id);
+                break;
+        }
+
+        return ret;
+    }
 
     // Effects
     useEffect(()=>{
@@ -188,7 +229,8 @@ function Provider({ children }: { children: any }) {
         selectedCartTab, setSelectedCartTab,
 
         storeLineItems,
-        addLineItem, removeLineItem, clearingLineItems
+        addLineItem, removeLineItem, 
+        clearingLineItems, getLineItem
     }}>{children}</LeagueStoreContext.Provider>;
 }
 

@@ -1,17 +1,35 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+
+import StoreMenuItem from "../components/storeMenuItem";
+import StoreItemList from "../components/storeList";
+
+import { LeagueStoreContextType, LeagueStoreItemType } from "../../datatypes/customDT";
+
+import leagueStoreContext from '../../context/leaguestore.context';
 
 // Images
 import cover from '../../assets/leagueStore/apparel_store_cover.png';
-import StoreItemList from "../components/storeList";
-import { LeagueStoreItemType } from "../../datatypes/customDT";
-import StoreMenuItem from "../components/storeMenuItem";
 
 export default function Apparel(){
+    const [searchParams] = useSearchParams();
     const [selStoreItem, setSelStoreItem] = useState<LeagueStoreItemType|undefined>();
+
+    const { getLineItem } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
     
     useEffect(()=>{ 
-        setSelStoreItem(undefined);
-    },[]);
+        const page_item = searchParams.get("item");
+        let store_item = undefined;
+
+        if(page_item) {
+            let line_item = getLineItem('apparel', page_item);
+
+            if(line_item?.store_item) {
+                store_item = line_item.store_item;
+            }
+        }
+        setSelStoreItem(store_item);
+    },[searchParams]);
 
     return (
         <div className="ls-page ls-store-page">

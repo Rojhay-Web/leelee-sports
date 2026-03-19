@@ -63,6 +63,14 @@
         display: flex; flex-direction: row;
         padding: 8px; margin: 2rem 0;
 
+        .empty-cart {
+            text-align: center; font-size: 4rem;
+            color: rgba(50,50,5, 1); padding: 2rem 10%;
+            font-family: 'Barlow Condensed', sans-serif;
+
+            p { margin: 0; }
+        }
+
         .cart-line-items-container { 
             flex: 1; display: flex;
             flex-direction: column;
@@ -86,6 +94,47 @@
                         width: 100%; min-height: 100%;
                         object-fit: cover;
                     }
+
+                    .btn-container {
+                        display: flex; flex-direction: row;
+                        padding: 1rem 0; justify-content: center;
+
+                        .btn {
+                            all: unset;
+                            display: flex; flex-direction: row;
+                            justify-content: space-between;
+                            padding: 4px 8px; border-radius: 32px;
+                            background-color: rgba(200,200,200,1);
+                            font-family: 'Barlow Condensed', sans-serif;
+                            font-weight: bold; font-size: 0.8rem;
+                            color: #fff; cursor: pointer;
+
+                            transition: 0.2s all ease-in-out;
+
+                            .btn-icon { font-size: 1rem; }
+
+                            &:disabled { 
+                                opacity: 0.2; cursor: default;
+                                background-color: @league-store-c3; 
+
+                                .price { display: none; }
+                            }
+
+                            &:hover:not(:disabled) { background-color: lighten(rgba(200,200,200,1), 10%);}
+                            
+                            &.remove { 
+                                background-color: rgba(200,0,0,1);
+                                &:hover:not(:disabled) { background-color: lighten(rgba(200,0,0,1), 10%);}
+                            }
+
+                            &.edit { 
+                                background-color: rgba(100,100,100,1);
+                                &:hover:not(:disabled) { background-color: lighten(rgba(100,100,100,1), 10%);}
+                            }
+
+                            &+.btn { margin-left: 1rem; }
+                        }
+                    }
                 }
 
                 .line-item-table {
@@ -99,6 +148,11 @@
 
                                 .title { 
                                     font-weight: bold; font-size: 1.2rem; 
+                                }
+
+                                .additional-description {
+                                    font-size: 0.8rem; font-style: italic;
+                                    padding: 0.5rem;
                                 }
 
                                 .date-row {
@@ -120,6 +174,49 @@
                                             padding-left: 100px;
                                         }
                                     }
+                                }
+                            }
+
+                            .custom-detail-container {
+                                padding: 0 .5rem; display: flex;
+                                flex-direction: column;
+
+                                .item-personalize-container {
+                                    border-radius: 8px; color: rgba(50,50,50,1); 
+                                    padding: 4px; display: flex; flex-direction: row; 
+                                    margin-bottom: 4px; background: @color1;
+
+                                    .img-container {
+                                        .league-store-c2(background-color, 0.5); width: 75px; height: 75px; border-radius: 5px;
+                                        overflow: hidden; margin-right: 10px;
+
+                                        img { min-height: 100%; width: 100%; object-fit: cover; }
+                                    }
+
+                                    .team-info-container {
+                                        flex: 1; display: flex; flex-direction: column; 
+
+                                        .team-info-item { 
+                                            display: flex; flex-direction: column;
+                                            .title { font-size: .8rem; font-weight: bold; color: @league-store-c2;}
+                                            span { color: #000; margin-left: 5px; }
+                                        }
+                                    }
+
+                                    .custom-details-list {
+                                        width: 100%;
+                                        th { 
+                                            text-align: center; 
+                                            border-bottom: 2px solid rgba(0,0,0,0.2);
+                                            background-color: @league-store-c1;
+                                        }
+                                        td { 
+                                            text-align: center; font-size: 0.8rem;
+                                            border-bottom: 1px solid rgba(0,0,0,0.2);
+                                        }
+                                    }
+
+                                    &+.item-personalize-container { margin-top: 0.5rem; }
                                 }
                             }
                             
@@ -153,16 +250,88 @@
         }
 
         .cart-invoice-details-container { 
-            width: 300px; height: 450px;
+            width: 350px; // height: 450px;
             margin: 8px 2rem 8px 0; 
-            border-radius: 8px; padding: 8px;
-            background: rgba(240,240,240,1);
             display: flex; flex-direction: column;
             position: relative;
 
-            -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-            -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            .cart-invoice-details-inner {
+                display: flex; flex-direction: column;
+                width: 350px; z-index: 100;
+            }
+
+            .section-container {
+                border-radius: 8px; padding: 16px;
+                background: rgba(240,240,240,1);
+                display: flex; flex-direction: column;
+
+                -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+                -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+
+                p { 
+                    margin: 0; font-size: 1rem;
+                    &+p { margin-top: 1rem; }
+                }
+                h1{ margin-top: 0; font-family: 'Barlow Condensed', sans-serif; }
+
+                .total-info {
+                    display: flex; flex-direction: row; justify-content: space-between;
+                    padding: 4px 8px;
+
+                    span { 
+                        font-size: 1.1rem;  
+                        &+span { margin-left: 10px;}
+                        &.total { font-weight: bold; } 
+                    }
+
+                    .discount-description { font-size: 0.9rem; width: 100%;  }
+
+                    &.wrap { flex-wrap: wrap; }
+                    &.discount {
+                        background: rgba(50, 50, 50, 0.2);
+                        border-radius: 5px; padding: 4px 8px;
+                        margin-bottom: 8px; color: @color3;
+                    }
+                    &.cutoff {
+                        border-top: 1px solid rgba(50,50,50,0.5);
+                        padding-top: 1rem;
+                    }
+
+                    &+.total-info { margin-top: 1rem; }
+                }
+
+                .btn-container {
+                    display: flex; flex-direction: column;
+                    padding: 2rem 0 1rem;
+
+                    .submit {
+                        all: unset;
+                        display: flex; flex-direction: row;
+                        justify-content: space-between;
+                        padding: 8px 16px; border-radius: 32px;
+                        background-color: @league-store-c2;
+                        font-family: 'Barlow Condensed', sans-serif;
+                        font-weight: bold; font-size: 1.3rem;
+                        color: #fff; cursor: pointer;
+
+                        transition: 0.2s all ease-in-out;
+
+                        &:disabled { 
+                            opacity: 0.2; cursor: default;
+                            background-color: @league-store-c3; 
+
+                            .price { display: none; }
+                        }
+
+                        &:hover:not(:disabled) { background-color: lighten(@league-store-c2, 10%);}
+                    }
+
+                    p { text-align: center; margin: 1rem 0 0; }
+                }
+
+                &+.section-container { margin-top: 2rem; }
+            }
         }
     }
 }

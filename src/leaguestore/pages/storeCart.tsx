@@ -30,11 +30,13 @@ const formatter = new Intl.NumberFormat('en-US', {
 const store_cart_config: any = {
     "leagues":{
         tab_direction:"left",
+        discount_title: "League",
         discount_tags: ["league_gt_2", "league_gt_1"],
         showDateRange: true
     },
     "apparel":{
         tab_direction:"right",
+        discount_title: "Apparel Store",
         discount_tags: [],
         showDateRange: false
     }
@@ -42,13 +44,14 @@ const store_cart_config: any = {
 
 import default_img from '../../assets/logo/leeleekiddz_league_store.png';
 import { API_URL, formatDate } from "../../utils";
+import { Link } from "react-router-dom";
 
 function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) {
     const [selImg, setSelImg] = useState<string|undefined>(undefined);
     const [subDetailRow, setSubDetailRow] = useState<SubDetailRowType[]>([]);
     const [priceDetails, setPriceDetails] = useState({ "core_total": 0, "addon_total": 0 });
 
-    const { calcLineItemSubTotal } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
+    const { calcLineItemSubTotal, removeLineItem } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
 
     const getPrice = (val?:number) => {
         let ret = '$$';
@@ -129,6 +132,12 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
         return ret;
     }
 
+    const removeItem = () => {
+        if(lineItem?.quote_item_id && window.confirm('Are you sure you want to remove this line item?')){
+            removeLineItem(type, lineItem.quote_item_id);
+        }
+    }
+
     useEffect(()=>{
         // Set Default Image
         if(lineItem?.store_item?.photos && lineItem?.store_item?.photos?.length > 0) {
@@ -141,7 +150,7 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
         // Set Line Item Price
         const { core_total, addon_total } = calcLineItemSubTotal(lineItem);
         setPriceDetails({ core_total, addon_total });
-    },[]);
+    },[lineItem]);
 
     return(
         <div className="cart-line-item">
@@ -153,7 +162,18 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
                     }
                 </div>
 
-                {/* TODO: Edit & Remove buttons*/}
+                {/* TODO: Edit button*/}
+                <div className="btn-container">
+                    <button className="btn remove" onClick={removeItem}>
+                        <span className="btn-icon material-symbols-outlined">close</span>
+                        <span className="btn-title">Remove</span>
+                    </button>
+
+                    <Link className="btn edit" to={`/leaguestore/${type}?item=${lineItem?.quote_item_id}`}>
+                        <span className="btn-icon material-symbols-outlined">edit_note</span>
+                        <span className="btn-title">Edit Item</span>
+                    </Link>
+                </div>
             </div>
 
             <table className="line-item-table">
@@ -176,7 +196,10 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
                                         }
                                     </div>
                                 }
-                                
+
+                                {(lineItem?.item_additional_details && lineItem?.item_additional_details?.length > 0) &&
+                                    <div className="additional-description">{lineItem?.item_additional_details}</div>
+                                }
                                 <table className="sub-detail-container">
                                     {subDetailRow?.map((sdr, i) =>
                                         <tr className="sdr-row" key={i}>
@@ -213,6 +236,52 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
                             </td>
                             <td className="price">{getPrice(priceDetails.addon_total)}</td>
                         </tr>
+                    }
+
+                    {/* Design Details */}
+                    {(lineItem?.store_item?.details?.customDesign) &&
+                        <tr>
+                            <td>
+                                <div className="custom-detail-container">
+                                    <div className='item-personalize-container'>
+                                        <div className='img-container'>
+                                            {lineItem?.design_img && <img src={lineItem?.design_img} /> }
+                                        </div>
+                                        <div className='team-info-container'>
+                                            <div className='team-info-item'>
+                                                <div className='title'>Team Name</div>
+                                                <span>{lineItem?.design_name}</span>
+                                            </div>
+                                            <div className='team-info-item'>
+                                                <div className='title'>Design Notes</div>
+                                                <span>{lineItem?.design_description}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className='item-personalize-container'>
+                                        <table className="custom-details-list">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Name</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {lineItem?.custom_item_list?.map((cli, i) =>
+                                                    <tr key={i}>
+                                                        <td>{cli.item_number ?? 'Not Set'}</td>
+                                                        <td>{cli.item_title ?? 'Not Set'}</td>
+                                                        <td>{cli.item_category_sel ?? 'Not Set'}</td>
+                                                    </tr>
+                                                )}                                                
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
                     }                    
                 </tbody>
             </table>
@@ -221,6 +290,8 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
 }
 
 export default function StoreCart(){
+    const [cartLineItems, setCartLineItems] = useState<QuoteLineItemType[]>([]);
+
     // Total | Addon Sub Total | Core Sub Total | [Discount] | 
     const [invoiceValues, setInvoiceValues] = useState<InvoiceDetailsType>({ 
             addon_sub_total: 0,
@@ -228,9 +299,10 @@ export default function StoreCart(){
             total: 0,
             discount: null
         });
+
     const { storeLineItems, selectedCartTab, setSelectedCartTab, calcLineItemSubTotal } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
 
-    const generateInvoiceDiscount = (lineItemCount: number) => {
+    const generateInvoiceDiscount = (lineItemCount: number, core_sub_total:number) => {
         let ret = null;
         try {
             const discount_tags = store_cart_config[selectedCartTab].discount_tags;
@@ -239,7 +311,8 @@ export default function StoreCart(){
                 if(discount_tags[i] === "league_gt_2" && lineItemCount > 2) {
                     ret = { 
                         percentage: 20, tag:'league_gt_2',
-                        title: 'Registering 3 or more of our leagues'
+                        title: 'Registering 3 or more of our leagues',
+                        total: .2 * core_sub_total
                     }
                     break;
                 }
@@ -247,7 +320,8 @@ export default function StoreCart(){
                 if(discount_tags[i] === "league_gt_1" && lineItemCount > 1) {
                     ret = { 
                         percentage: 10, tag:'league_gt_1',
-                        title: 'Registering 2 of our leagues'
+                        title: 'Registering 2 of our leagues',
+                        total: .1 * core_sub_total
                     }
                     break;
                 }
@@ -266,18 +340,10 @@ export default function StoreCart(){
             total: 0,
             discount: null
         };
-
-        // Get Store Line Items
-        let tmpStoreLineItems:QuoteLineItemType[] = [];
-        if(selectedCartTab === "leagues") {
-            tmpStoreLineItems = storeLineItems.leagues;
-        } else if (selectedCartTab === "apparel") {
-            tmpStoreLineItems = storeLineItems.apparel;
-        }
         
-        if(tmpStoreLineItems.length > 0){
+        if(cartLineItems.length > 0){
             // Calculate Core Sub Total | Calculate Addon Subtotal
-            tmpStoreLineItems.forEach((li) => {
+            cartLineItems.forEach((li) => {
                 const { core_total, addon_total } = calcLineItemSubTotal(li);
 
                 invoice_values.core_sub_total += core_total;
@@ -285,7 +351,7 @@ export default function StoreCart(){
             })
 
             // Determine Discount Amount
-            invoice_values.discount = generateInvoiceDiscount(tmpStoreLineItems.length);
+            invoice_values.discount = generateInvoiceDiscount(cartLineItems.length, invoice_values.core_sub_total);
         }
         
         // Set Local Total State  
@@ -302,10 +368,31 @@ export default function StoreCart(){
         setInvoiceValues(invoice_values);
     }
 
+    const getPrice = (val?:number) => {
+        let ret = '$$';
+        try {
+            if(val){
+                ret = formatter.format(val);
+            }
+        } catch(ex){
+            log.error(`Getting Price: ${ex}`);
+        }
+
+        return ret;
+    }
+
+    useEffect(()=>{
+        if(selectedCartTab === "leagues") {
+            setCartLineItems(storeLineItems.leagues);
+        } else if(selectedCartTab === "apparel"){
+            setCartLineItems(storeLineItems.apparel);
+        }
+    },[storeLineItems, selectedCartTab]);
+
     useEffect(()=>{
         // Generate Invoice
         generateInvoice();
-    },[storeLineItems, selectedCartTab]);
+    },[cartLineItems]);
 
     useEffect(()=>{ window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); },[]);
 
@@ -321,24 +408,67 @@ export default function StoreCart(){
             </div>
 
             <div className="cart-details-container">
-                <div className="cart-line-items-container">
-                    {selectedCartTab === "leagues" && 
-                        <>
-                            {storeLineItems.leagues?.map((li, i) =>
-                                <StoreCartLineItem type="leagues" lineItem={li} discount={invoiceValues?.discount} key={i} />
+                {!(cartLineItems?.length > 0) ?
+                    <div className="empty-cart">
+                        <p>This cart is currently empty</p> 
+                        <p>add store items before attempting to submit an invoice</p>
+                    </div> :
+                    <>
+                        <div className="cart-line-items-container">
+                            {cartLineItems?.map((li, i) =>
+                                <StoreCartLineItem type={selectedCartTab} lineItem={li} discount={invoiceValues?.discount} key={i} />
                             )}
-                        </>
-                    }
+                        </div>
 
-                    {selectedCartTab === "apparel" && 
-                        <>
-                            {storeLineItems.apparel?.map((li, i) =>
-                                <StoreCartLineItem type="apparel" lineItem={li} discount={invoiceValues?.discount} key={i} />
-                            )}
-                        </>
-                    }
-                </div>
-                <div className="cart-invoice-details-container"></div>
+                        <div className="cart-invoice-details-container">
+                            <div className="cart-invoice-details-inner">
+                                <div className="section-container">
+                                    <p>The following is your custom invoice based on the items that you added.</p>
+                                    <p>If all of the items are correct feel free to select the 'Submit Invoice' button.  
+                                            Which will generate and save your custom invoice.</p> 
+                                </div>
+
+                                <div className="section-container">
+                                    <h1>Order Summary</h1>
+
+                                    <div className='total-info'>
+                                        <span>Sub-Total:</span>
+                                        <span>{getPrice(invoiceValues.core_sub_total)}</span>
+                                    </div>
+
+                                    {(invoiceValues?.discount != null) &&
+                                        <div className='total-info wrap discount'>
+                                            <span>{invoiceValues?.discount?.percentage}% {store_cart_config[selectedCartTab].discount_title} Discount:</span>
+                                            <span>-{getPrice(invoiceValues?.discount?.total)}</span>
+                                            <div className='discount-description'>{invoiceValues?.discount?.title}</div>
+                                        </div>
+                                    }
+
+                                    {(invoiceValues?.addon_sub_total > 0) &&
+                                        <div className='total-info'>
+                                            <span>Addon Item(s) Sub-Total:</span>
+                                            <span>{getPrice(invoiceValues.addon_sub_total)}</span>
+                                        </div>
+                                    }
+
+                                    <div className='total-info cutoff'>
+                                        <span className='total'>Total:</span>
+                                        <span className='total'>{getPrice(invoiceValues.total)}</span>
+                                    </div>
+
+                                    <div className="btn-container">
+                                        <button className="submit" disabled={cartLineItems?.length === 0}>
+                                            <span className="btn-title">Submit Invoice</span>
+                                            <span className="btn-icon material-symbols-outlined">send_and_archive</span>
+                                        </button>
+
+                                        <p>If you have any questions feel free to contact: <a href="mailto:kevinricks@leeleeff.com" target="_blank">kevinricks@leeleeff.com</a></p>
+                                    </div>   
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                }
             </div>
         </div>
     );
