@@ -201,12 +201,14 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
                                     <div className="additional-description">{lineItem?.item_additional_details}</div>
                                 }
                                 <table className="sub-detail-container">
-                                    {subDetailRow?.map((sdr, i) =>
-                                        <tr className="sdr-row" key={i}>
-                                            <td className="sdr-title">{sdr.title}</td>
-                                            <td className="count-price">{sdr.count} x {getPrice(sdr.price)}</td>
-                                        </tr>
-                                    )}
+                                    <tbody>
+                                        {subDetailRow?.map((sdr, i) =>
+                                            <tr className="sdr-row" key={i}>
+                                                <td className="sdr-title">{sdr.title}</td>
+                                                <td className="count-price">{sdr.count} x {getPrice(sdr.price)}</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
                                 </table>
                             </div>
                         </td>
@@ -225,12 +227,14 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
                                 <div className="content-details">
                                     <div className="title">Addon(s)</div>
                                     <table className="sub-detail-container">
-                                        {lineItem.add_on_list.map((ad, i) =>
-                                            <tr className="sdr-row" key={i}>
-                                                <td className="sdr-title">{ad.title}</td>
-                                                <td className="count-price">{ad.minimum} x {getAddOnPrice(ad.title)}</td>
-                                            </tr>
-                                        )}
+                                        <tbody>
+                                            {lineItem.add_on_list.map((ad, i) =>
+                                                <tr className="sdr-row" key={i}>
+                                                    <td className="sdr-title">{ad.title}</td>
+                                                    <td className="count-price">{ad.minimum} x {getAddOnPrice(ad.title)}</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
                                     </table>
                                 </div>
                             </td>

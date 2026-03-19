@@ -26,6 +26,11 @@ function MobileNav({ user, isOpen, setIsOpen }: { user: User | null, isOpen: boo
                     <NavLink className="m-sidenav-link mini-link" to="/toolbox/leaguestore" onClick={() => setIsOpen(false)}>Admin Tool</NavLink>
                 }
                 <NavLink className="m-sidenav-link mini-link" to="/leaguestore?org_setting=true" onClick={() => setIsOpen(false)}>Account Settings</NavLink>
+                
+                <NavLink className={'m-sidenav-link mini-link'} to="/leaguestore/cart" onClick={() => setIsOpen(false)}>
+                    <span className="material-symbols-outlined">shopping_cart</span>
+                    <span>Cart</span>
+                </NavLink>
             </div>
         </div>
     );

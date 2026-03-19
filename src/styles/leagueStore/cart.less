@@ -69,6 +69,8 @@
             font-family: 'Barlow Condensed', sans-serif;
 
             p { margin: 0; }
+
+            @media @mobile-nav { font-size: 2rem; }
         }
 
         .cart-line-items-container { 
@@ -89,6 +91,8 @@
                         overflow: hidden;
                         border-radius: 8px;
                         width: 300px; 
+
+                        @media @mobile-nav { width: 100%; }
                     }
                     img { 
                         width: 100%; min-height: 100%;
@@ -172,8 +176,12 @@
                                         .count-price { 
                                             text-align: right; 
                                             padding-left: 100px;
+
+                                            @media @mobile-nav { padding-left: 2rem; }
                                         }
                                     }
+
+                                    @media @mobile-nav { width: initial; }
                                 }
                             }
 
@@ -238,19 +246,29 @@
                                         font-size: 1rem;
                                         text-align: center;
                                         color: rgba(100,0,0,1);
+
+                                        @media @mobile-nav { font-size: .8rem; }
                                     }
                                 }
+
+                                @media @mobile-nav { font-size: 1rem; }
                             }
                         }
                     }
+
+                    @media @mobile-nav { padding: 0; }
                 }
 
                 &+.cart-line-item { border-top: 1px solid rgba(50,50,50,0.2); }
+
+                @media @mobile-nav { flex-direction: column; padding: 1rem 0; }
             }
+
+            @media @mobile-nav { padding: 0; }
         }
 
         .cart-invoice-details-container { 
-            width: 350px; // height: 450px;
+            width: 350px; 
             margin: 8px 2rem 8px 0; 
             display: flex; flex-direction: column;
             position: relative;
@@ -332,6 +350,14 @@
 
                 &+.section-container { margin-top: 2rem; }
             }
+
+            @media @mobile-nav {
+                width: initial; margin: 8px 0;
+
+                .cart-invoice-details-inner { width: initial; }
+            }
         }
+
+        @media @mobile-nav { flex-direction: column; padding: 8px 0; }
     }
 }
