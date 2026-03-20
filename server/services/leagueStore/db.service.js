@@ -2,9 +2,10 @@ require('dotenv').config();
 const { ObjectId } = require('mongodb');
 const fns = require('date-fns');
 const _ = require('lodash');
+const fs = require('fs');
+const puppeteer = require("puppeteer");
 
 // REMOVE
-const fs = require('fs');
 const path = require('path');
 
 const log = require('../log.service');
@@ -712,7 +713,7 @@ module.exports = {
                 return { "error": `Submitting Purchase Order`};
             }
         },
-        download: async function(current_user, invoice_id, is_invoice=false, line_item_filter=[]){
+        download: async function(invoice_id, is_invoice=false, line_item_filter=[]){
             try {
                 // Get Quote 
                 const collection = await dbCollection("ls_quotes");
@@ -721,10 +722,8 @@ module.exports = {
                 }
 
                 // Find Quote
-                const user_id = current_user?._id ? current_user?._id.toString() : null;
-
                 const findQuote = await collection.aggregate([
-                    // Join with Users Table
+                    // Join with LS Users Table
                     { $addFields: { "ls_user_obj_id": { "$toObjectId": "$ls_user_id" }}},
                     { 
                         $lookup: {  
@@ -740,6 +739,24 @@ module.exports = {
                             'ls_user': { $arrayElemAt: ['$ls_user_list', 0] }
                         }
                     },
+
+                    // Join with Users Table
+                    { $addFields: { "blueprint_user_id": { "$toObjectId": "$ls_user.blueprint_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "users", 
+                            localField: "blueprint_user_id", 
+                            foreignField: "_id", 
+                            as: "blueprint_user_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'blueprint_user': { $arrayElemAt: ['$blueprint_user_list', 0] }
+                        }
+                    },
+
                     // Join with User with Organization Table
                     { $addFields: { "ls_user.organization_obj_id": { "$toObjectId": "$ls_user.organization_id" }}},
                     { 
@@ -752,14 +769,21 @@ module.exports = {
                     },
 
                     // Find Invoice
-                    { $match: { _id: new ObjectId(invoice_id), 'ls_user.blueprint_id': user_id  } },
+                    { $match: { _id: new ObjectId(invoice_id)  } },
                 ]).toArray();
 
                 if(!(findQuote?.length > 0)){
                     return { "error": "Unable to find quote"};
                 }
 
-                return _buildInvoice(current_user, findQuote[0], is_invoice, line_item_filter);
+                const html = _buildInvoice(findQuote[0], is_invoice, line_item_filter);
+                if(!html.results) {
+                    return { error: 'Downloading Invoice [E2]' };
+                }
+
+                const invoice_name = `leeleekiddz_invoice_${findQuote[0].invoice_number}.pdf`;
+
+                return await _generatePdfFromHtml(html.results, invoice_name);
             } catch(ex){
                 log.error(`Downloading Invoice: ${ex}`);
                 return { error:"Downloading Invoice: Please contact system admin [E-GP00]" };
@@ -847,7 +871,7 @@ function cleanStoreUser(item) {
     return ret;
 }
 
-function _buildInvoice(current_user, quote, is_invoice, line_item_filter=[]) {
+function _buildInvoice(quote, is_invoice, line_item_filter=[]) {
     try {
         /* Styles */
         let pdf_styles = [
@@ -862,7 +886,9 @@ function _buildInvoice(current_user, quote, is_invoice, line_item_filter=[]) {
             ".invoice-container .invoice-body .invoice-data-container table tbody tr td .multi-container { display: flex; flex-direction: column; } .invoice-container .invoice-body .invoice-data-container table tbody tr td .multi-container .row-sub-title { font-weight: bold; padding: 0 4px; } .invoice-container .invoice-body .invoice-data-container table tbody .discount td { color: rgba(147, 36, 50, 1); } .invoice-container .invoice-body .invoice-data-container table tbody tr td .item-details .detail-item-line { font-size: 0.8rem; font-style: italic; max-width: 500px; }"
         ];
 
-        // TODO: Build Filtered Invoice if line_items passed
+        const current_user = quote?.blueprint_user;
+
+        // Filtered Invoice if line_items passed
         let filter_invoice = {
             line_items: quote?.line_items,
             core_sub_total: quote.core_sub_total,
@@ -1075,7 +1101,7 @@ function _buildInvoice(current_user, quote, is_invoice, line_item_filter=[]) {
                     <table>
                         <thead>
                             <tr>
-                                <th style="background: #000;">Item #</th>
+                                <th style="background: #000;">#</th>
                                 <th style="background: #000;" class='item-cell'>Item</th>
                                 <th style="background: #000;">Quantity</th>
                                 <th style="background: #000;">Price</th>
@@ -1205,11 +1231,7 @@ function _buildInvoice(current_user, quote, is_invoice, line_item_filter=[]) {
             </div>
         `;
 
-        // REMOVE Test Build
-        const outPath = path.resolve('./docs/invoice', 'template.html');
-        fs.writeFileSync(outPath, html_template, 'utf8');
-
-        return { results: true };
+        return { results: html_template };
     } catch(ex){
         log.error(`Building Invoice: ${ex}`);
         return { error: 'Building Invoice' };
@@ -1281,6 +1303,49 @@ function _calcLineItemRow(lineItem){
     }
 
     return tmpDetails;
+}
+
+async function _generatePdfFromHtml(htmlContent, file_name) {
+    try {
+        // we are using headless mode
+        let args = [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+        ];
+        
+        const browser = await puppeteer.launch({ args: args });
+        const page = await browser.newPage();
+
+        await page.setContent(htmlContent, { waitUntil: "networkidle0" }); // Waits until the page is fully loaded
+        const ret = await page.pdf({
+            // path: file_path,
+            format: "A4",
+            printBackground: true, // Includes background colors/images
+        });
+
+        await browser.close();
+
+        const pdf_file_buffer = Buffer.from(Object.values(ret));
+        
+        let file_path = `custom_invoices/${file_name}`, fd = null;
+
+        if(!fs.existsSync(file_path)){
+            log.debug(`Creating File: ${file_path}`);
+            fd = fs.openSync(file_path, 'w');
+        } else {
+            file_path =`custom_invoices/${(new Date()).getTime()}_${file_name}`;
+            log.debug(`Creating File Replacement File: ${file_path}`);
+            fd = fs.openSync(file_path, 'w');
+        }
+
+        log.info(`Writing Data To File: ${file_path}`);
+        fs.writeFileSync(file_path, pdf_file_buffer, { flag: 'w' });
+        
+        return { results: file_path, fd: fd };
+    } catch(ex){
+        log.error(`Generating PDF: ${ex}`);
+        return { error: 'Generating PDF'};
+    }
 }
 
 const currencyFormat = (price) => {

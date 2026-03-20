@@ -2,6 +2,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
+const fs = require('fs');
 
 // League Store Services
 const ls_db = require('../services/leagueStore/db.service.js'),
@@ -11,7 +12,7 @@ const ls_db = require('../services/leagueStore/db.service.js'),
     util = require('../utils/util.js');
 
 module.exports = function() {
-    async function submitPO(req, res) {
+    async function submitQuote(req, res) {
         try {
             const auth_ret = await auth.validateUser(req?.headers);
             if(auth_ret?.results){
@@ -33,8 +34,18 @@ module.exports = function() {
             if(auth_ret?.results){
                 const is_invoice = (req.query && req.query?.is_invoice == 1);
 
-                const ret = await ls_db.purchaseOrder.download(auth_ret?.app_id, req.params.id, is_invoice, req.query?.filter_items);                
-                res.status(response.SUCCESS.OK).json(ret);
+                const ret = await ls_db.purchaseOrder.download(req.params.id, is_invoice, req.query?.filter_items);                
+
+                if(ret.results && fs.existsSync(ret.results)){
+                    res.download(ret.results, function(d_err){
+                        if(ret?.fd != null){
+                            fs.closeSync(ret?.fd);
+                            fs.unlinkSync(ret.results);
+                        }                            
+                    });
+                } else {
+                    res.status(response.SERVER_ERROR.INTERNAL).json({"error":`Downloading Invoice[E00]: Contact System Admin` });
+                }
             } else {
                 res.status(response.ERROR.UNAUTHORIZED).json({ "error":"Unauthorized User" });
             }
@@ -48,8 +59,8 @@ module.exports = function() {
     // Apply the rate limiting middleware to express router.
     router.use(rateLimit(util.rateLimit));
 
-    router.post("/purchaseOrder/submit", submitPO);
-    router.get('/download_invoice/:id', downloadInvoice);
+    router.post("/quote/submit", submitQuote);
+    router.get('/quote/download/:id', downloadInvoice);
 
     return router;
 }
