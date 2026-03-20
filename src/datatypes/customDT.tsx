@@ -279,6 +279,7 @@ export class QuoteLineItemType {
 export class PurchaseOrderType {
     _id?: string;
     ls_user_id?:string;
+    type?: string;
 
     status?:string;
     invoice_number?:number;
@@ -295,8 +296,10 @@ export class PurchaseOrderType {
 
     constructor(
         _core_sub_total:number, _addon_sub_total:number, _total:number,
-        _discount: PurchaseOrderDiscountType, _line_items: QuoteLineItemType[]
+        _discount: PurchaseOrderDiscountType, _line_items: QuoteLineItemType[],
+        _type: string
     ){
+        this.type = _type;
         this.core_sub_total = _core_sub_total;
         this.addon_sub_total = _addon_sub_total;
         this.total = _total;

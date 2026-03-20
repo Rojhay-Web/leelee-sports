@@ -398,7 +398,8 @@ export default function StoreCart(){
             setLoading(true);
             const new_po = new PurchaseOrderType(
                 invoiceValues?.core_sub_total, invoiceValues?.addon_sub_total, 
-                invoiceValues?.total, invoiceValues?.discount, cartLineItems
+                invoiceValues?.total, invoiceValues?.discount, cartLineItems,
+                selectedCartTab
             );
 
             const postData = JSON.stringify(new_po);
