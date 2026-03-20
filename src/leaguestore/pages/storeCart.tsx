@@ -168,7 +168,6 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
                     }
                 </div>
 
-                {/* TODO: Edit button*/}
                 <div className="btn-container">
                     <button className="btn remove" onClick={removeItem}>
                         <span className="btn-icon material-symbols-outlined">close</span>
@@ -404,7 +403,7 @@ export default function StoreCart(){
 
             const postData = JSON.stringify(new_po);
 
-            const response = await fetch(`${LS_API_URL}/purchaseOrder/submit`, {
+            const response = await fetch(`${LS_API_URL}/quote/submit`, {
                 method: "POST", body: postData,
                 headers: {
                     'Content-Type': 'application/json',
@@ -413,16 +412,18 @@ export default function StoreCart(){
                 },
             });
 
-            console.log(response);
-
             const res = await response.json();
 
             if(res?.results){
-                clearingLineItems(selectedCartTab);
-                // TODO: Download Invoice
+                // Download Invoice
+                downloadInvoice(res?.results);
+                
                 toast.success(`Submitted Purchase Order`, { position: "top-right",
                     autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
                     draggable: true, progress: undefined, theme: "light" });
+
+                clearingLineItems(selectedCartTab);
+                
             } else {
                 toast.error(`Submitting Purchase Order: ${res?.error}`, { position: "top-right",
                     autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
@@ -436,6 +437,33 @@ export default function StoreCart(){
         }
 
         setLoading(false);
+    }
+
+    const downloadInvoice = async (quote_id:string) => {
+        try {
+            const response = await fetch(`${LS_API_URL}/quote/download/${quote_id}`, {
+                method: "GET", 
+                headers: {
+                    'Content-Type': 'application/json',
+                    "Authorization": token ?? "",
+                },
+            });
+
+            if (!response.ok) {
+                toast.error(`Downloading Quote`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            }
+
+            const blob = await response.blob();
+            // Create an object URL from the blob
+            const _url = window.URL.createObjectURL(blob);
+
+            // Open the new window/tab
+            window.open(_url, '_blank')?.focus();
+        } catch(ex){
+            log.error(`Downloading Invoice: ${ex}`);
+        }
     }
 
     useEffect(()=>{
@@ -455,7 +483,7 @@ export default function StoreCart(){
 
     return (
         <div className="ls-page ls-store-cart">
-            <h1 className="page-title">Finalize Invoice</h1>
+            <h1 className="page-title">Finalize Quote</h1>
 
             <div className="cart-tab-container-wrapper">
                 <div className={`cart-tab-container ${store_cart_config[selectedCartTab]?.tab_direction}`}>
@@ -468,7 +496,7 @@ export default function StoreCart(){
                 {!(cartLineItems?.length > 0) ?
                     <div className="empty-cart">
                         <p>This cart is currently empty</p> 
-                        <p>add store items before attempting to submit an invoice</p>
+                        <p>add store items before attempting to submit an quote</p>
                     </div> :
                     <>
                         <div className="cart-line-items-container">
@@ -482,7 +510,7 @@ export default function StoreCart(){
                                 <div className="section-container">
                                     <p>The following is your custom invoice based on the items that you added.</p>
                                     <p>If all of the items are correct feel free to select the 'Submit Invoice' button.  
-                                            Which will generate and save your custom invoice.</p> 
+                                            Which will generate and save your custom quote.</p> 
                                 </div>
 
                                 <div className="section-container">

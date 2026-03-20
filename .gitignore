@@ -15,6 +15,9 @@
 /store/uploads/*
 /store/gallery/*
 
+# invoices
+/custom_invoices/*
+
 # misc
 docs/
 .DS_Store
@@ -31,3 +34,4 @@ yarn-error.log*
 # Exceptions (keep init files)
 !/store/uploads/init.txt
 !/store/gallery/init.txt
+!/custom_invoices/init.txt
