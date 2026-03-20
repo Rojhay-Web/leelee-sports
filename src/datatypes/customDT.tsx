@@ -56,6 +56,13 @@ export type LineItemTotals = {
     addon_total: number; 
 }
 
+export type PurchaseOrderDiscountType = {
+    percentage?: number;
+    tag?: string;
+    title?: string;
+    total?:number;
+}
+
 // Classes
 export class LeagueSportType {
     _id?: string;
@@ -266,5 +273,40 @@ export class QuoteLineItemType {
         if(clone_props?.details?.customDesign != true && (clone_props?.categorySet && clone_props?.categorySet?.length > 0)){
             this.overall_category_sel = clone_props.categorySet[0];
         }
+    }
+}
+
+export class PurchaseOrderType {
+    _id?: string;
+    ls_user_id?:string;
+
+    status?:string;
+    invoice_number?:number;
+
+    core_sub_total?: number;
+    addon_sub_total?: number;
+    total?: number;
+    discount?: PurchaseOrderDiscountType;
+
+    status_date?: Date;
+    creation_date?: Date;
+
+    line_items?: QuoteLineItemType[];
+
+    constructor(
+        _core_sub_total:number, _addon_sub_total:number, _total:number,
+        _discount: PurchaseOrderDiscountType, _line_items: QuoteLineItemType[]
+    ){
+        this.core_sub_total = _core_sub_total;
+        this.addon_sub_total = _addon_sub_total;
+        this.total = _total;
+        this.discount = _discount;
+
+        _line_items.forEach((li) => {
+            delete li?.quote_item_id;
+            delete li?.store_item?.photos;
+        });
+
+        this.line_items = _line_items;
     }
 }

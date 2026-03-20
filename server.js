@@ -49,6 +49,7 @@ startGraphQLServer();
 
 // API Declaration
 app.use('/v1/api', require('./server/controllers/routes.controller.js')(localStore));
+app.use('/v1/ls_api', require('./server/controllers/leagueStore.controller.js')());
 
 // set the static files location
 app.use(express.static(path.join(__dirname, 'build')));

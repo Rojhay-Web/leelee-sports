@@ -656,6 +656,58 @@ module.exports = {
                 return { "error": `Upserting League Store User`};
             }
         }
+    },
+
+    // Purchase Order
+    purchaseOrder: {
+        submit: async function(user_id, purchase_order){
+            try {
+                // Get League Store User Id
+                const collection = await dbCollection("ls_users");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                user_id = user_id ? user_id.toString() : user_id;
+                const findUser = await collection.findOne({ blueprint_id: user_id });
+
+                if(!findUser){
+                    return { "error": "Invalid League User"};
+                }
+
+                // Current User
+                const current_user = findUser;
+
+                // Get Quote DB
+                const quote_collection = await dbCollection("ls_quotes");
+                if(quote_collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                // TODO: Validate purchase_order object
+
+                // Build Object Values
+                purchase_order.status = 'NEW';
+                purchase_order.ls_user_id = current_user._id.toString();
+                purchase_order.invoice_number = await getNextInvoiceNum();
+                purchase_order.status_date = (new Date()).getTime();
+                purchase_order.creation_date = (new Date()).getTime();
+
+                // Insert New Purchase Order Quote
+                const result = await quote_collection.insertOne(purchase_order);
+
+                if(result.insertedId){
+                    // TODO: Send Email About New Quote
+                    return { results: result.insertedId };
+                } 
+
+                log.error(`Submitting Purchase Order [E01]`);
+                return { "error": `Unable to submit quote please contact system admin`};
+            } catch(ex){
+                log.error(`Submitting Purchase Order: ${ex}`);
+                return { "error": `Submitting Purchase Order`};
+            }
+        }
     }
 }
 
@@ -672,6 +724,32 @@ async function dbCollection(conn_collection) {
     }
 
     return collection;
+}
+
+async function getNextInvoiceNum(){
+    let default_num = 6000;
+    try {
+
+        // Get Collection
+        const collection = await dbCollection("ls_quotes");
+        if(collection == null){
+            return default_num;
+        }
+
+        // Get Largest Invoice Number
+        const result = await collection.find({}).sort({ invoice_number: -1}).limit(1).toArray();
+        
+        if(result.length > 0){
+            return result[0].invoice_number + 1;
+        } else {
+            return default_num;
+        }
+    }
+    catch(ex){
+        log.error(`Getting Next Invoice Number: ${ex}`);
+        return default_num;
+    }
+    //finally { await client.close(); }
 }
 
 function cleanStoreItem(item) {

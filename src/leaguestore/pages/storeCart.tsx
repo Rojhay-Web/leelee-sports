@@ -1,8 +1,14 @@
 import { useContext, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 import leagueStoreContext from '../../context/leaguestore.context';
-import { LeagueStoreContextType, QuoteLineItemType } from "../../datatypes/customDT";
+import userContext from '../../context/user.context';
+
+import { UserContextType } from "../../datatypes";
+import { LeagueStoreContextType, PurchaseOrderType, QuoteLineItemType } from "../../datatypes/customDT";
 import { log } from "../../utils/log";
+import { API_URL, LS_API_URL, formatDate } from "../../utils";
 
 type InvoiceDetailsType = {
     addon_sub_total: number;
@@ -43,8 +49,8 @@ const store_cart_config: any = {
 }
 
 import default_img from '../../assets/logo/leeleekiddz_league_store.png';
-import { API_URL, formatDate } from "../../utils";
-import { Link } from "react-router-dom";
+
+
 
 function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) {
     const [selImg, setSelImg] = useState<string|undefined>(undefined);
@@ -294,6 +300,7 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
 }
 
 export default function StoreCart(){
+    const [loading, setLoading] = useState(false);
     const [cartLineItems, setCartLineItems] = useState<QuoteLineItemType[]>([]);
 
     // Total | Addon Sub Total | Core Sub Total | [Discount] | 
@@ -304,7 +311,8 @@ export default function StoreCart(){
             discount: null
         });
 
-    const { storeLineItems, selectedCartTab, setSelectedCartTab, calcLineItemSubTotal } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
+    const { storeLineItems, selectedCartTab, setSelectedCartTab, calcLineItemSubTotal, clearingLineItems } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
+    const { token } = useContext(userContext.UserContext) as UserContextType;
 
     const generateInvoiceDiscount = (lineItemCount: number, core_sub_total:number) => {
         let ret = null;
@@ -385,6 +393,50 @@ export default function StoreCart(){
         return ret;
     }
 
+    const submitPurchaseOrder = async () => {
+        try {
+            setLoading(true);
+            const new_po = new PurchaseOrderType(
+                invoiceValues?.core_sub_total, invoiceValues?.addon_sub_total, 
+                invoiceValues?.total, invoiceValues?.discount, cartLineItems
+            );
+
+            const postData = JSON.stringify(new_po);
+
+            const response = await fetch(`${LS_API_URL}/purchaseOrder/submit`, {
+                method: "POST", body: postData,
+                headers: {
+                    'Content-Type': 'application/json',
+                    "Authorization": token ?? "",
+                    "Accept": "application/json", 
+                },
+            });
+
+            console.log(response);
+
+            const res = await response.json();
+
+            if(res?.results){
+                clearingLineItems(selectedCartTab);
+                // TODO: Download Invoice
+                toast.success(`Submitted Purchase Order`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            } else {
+                toast.error(`Submitting Purchase Order: ${res?.error}`, { position: "top-right",
+                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                    draggable: true, progress: undefined, theme: "light" });
+            }            
+        } catch(ex){
+            log.error(`Submitting Purchase Order: ${ex}`);
+            toast.error(`Submitting Purchase Order`, { position: "top-right",
+                autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                draggable: true, progress: undefined, theme: "light" });
+        }
+
+        setLoading(false);
+    }
+
     useEffect(()=>{
         if(selectedCartTab === "leagues") {
             setCartLineItems(storeLineItems.leagues);
@@ -461,7 +513,7 @@ export default function StoreCart(){
                                     </div>
 
                                     <div className="btn-container">
-                                        <button className="submit" disabled={cartLineItems?.length === 0}>
+                                        <button className="submit" disabled={cartLineItems?.length === 0 || loading} onClick={submitPurchaseOrder}>
                                             <span className="btn-title">Submit Invoice</span>
                                             <span className="btn-icon material-symbols-outlined">send_and_archive</span>
                                         </button>

@@ -9,6 +9,7 @@ const rootPath = (window.location.href.indexOf("localhost") > -1  ? "http://loca
 
 export const GQL_URL = `${rootPath}/v1/gql`;
 export const API_URL = `${rootPath}/v1/api`;
+export const LS_API_URL = `${rootPath}/v1/ls_api`;
 
 export const LOG_INGESTION_HOST = "";
 export const LOG_TOKEN = "";
