@@ -18,7 +18,10 @@ module.exports = {
     sendEmail: async function(toEmail, subject, emailText, emailHtml, content=null){
         try {
             if(content) {
-                emailText, emailHtml = buildEmailBody(content);
+                const bodyData = buildEmailBody(content);
+
+                emailText = bodyData.text;
+                emailHtml = bodyData.html;
             }
             
             if(!toEmail || !subject){
@@ -43,10 +46,13 @@ module.exports = {
             return { error: `Sending Email: ${ex}`, email_status: false };
         }
     },
-    sendEmailAttachment: async function(toEmail, subject, emailText, emailHtml, files, content=null){
+    sendEmailAttachment: async function(toEmail, subject, emailText, emailHtml, file, content=null){
         try {
             if(content) {
-                emailText, emailHtml = buildEmailBody(content);
+                const bodyData = buildEmailBody(content);
+
+                emailText = bodyData.text;
+                emailHtml = bodyData.html;
             }
             
             if(!toEmail || !subject){
@@ -54,10 +60,10 @@ module.exports = {
                 return { "email_status":false };
             }
 
-            let file_list = Array.isArray(files) ? files :  [files];
+            let file_list = [file];
 
-            let attachment_list = file_list.map((file) => {
-                return { filename: file.name, content: file.data }; 
+            let attachment_list = file_list.map((list_file) => {
+                return { filename: list_file.originalname, content: list_file.buffer }; 
             });
 
             const mailDetails = {
@@ -82,7 +88,7 @@ module.exports = {
 
 /* Private Functions */
 function buildEmailBody(content){
-    let text = "", html ="";
+    let text= "", html="";
     try {
         content.forEach((item) =>{
             text += ` ${item.text}`;
@@ -93,5 +99,5 @@ function buildEmailBody(content){
         log.error(`Building Email Body: ${ex}`);
     }
 
-    return text, html;
+    return { text, html };
 }

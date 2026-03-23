@@ -1,20 +1,22 @@
 require('dotenv').config();
 const { ObjectId } = require('mongodb');
 const fns = require('date-fns');
+const { UTCDate } = require('@date-fns/utc');
 const _ = require('lodash');
 const fs = require('fs');
 const puppeteer = require("puppeteer");
 
-// REMOVE
 const path = require('path');
 
 const log = require('../log.service');
 const util = require('../../utils/util');
 
 const { dbClient: client } = require('../blueprint/db.service');
+const mail = require('../blueprint/mail.service');
+
 const gIconList = require('../../utils/google_icon_list.json');
 
-const { DatabaseName } = process.env;
+const { DatabaseName, EMAIL_SEND_TO } = process.env;
 
 const appTables = {
     "league_sports":true, "ls_locations":true
@@ -695,8 +697,8 @@ module.exports = {
                 purchase_order.status = 'NEW';
                 purchase_order.ls_user_id = current_user._id.toString();
                 purchase_order.invoice_number = await getNextInvoiceNum();
-                purchase_order.status_date = (new Date()).getTime();
-                purchase_order.creation_date = (new Date()).getTime();
+                purchase_order.status_date = (new UTCDate()).getTime();
+                purchase_order.creation_date = (new UTCDate()).getTime();
 
                 // Insert New Purchase Order Quote
                 const result = await quote_collection.insertOne(purchase_order);
@@ -889,6 +891,53 @@ module.exports = {
                 log.error(`Searching League Store Quotes: ${ex}`);
                 return { "error": `Searching League Store Quotes`};
             }
+        },
+        uploadPO: async function(ls_quote_id, po_number, line_item_filter=[], file=null){
+            try {
+                // Get Quote 
+                const collection = await dbCollection("ls_quotes");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                const query = { _id: new ObjectId(ls_quote_id) };
+                const findQuote = await collection.findOne(query);
+
+                if(!findQuote) {
+                    return { "error": "Unable to find quote"};
+                }
+
+                if(!file) {
+                    return { "error": "No Files To Upload" };
+                }
+                
+                const poFile = { name: file.originalname, upload_dt: new UTCDate() }
+                
+                // Set Quote File To Store Admin
+                const mailRet = await mail.sendEmailAttachment(EMAIL_SEND_TO, 'LEE LEE KIDDZ Purchase Order Submission', null, null, file, 
+                            [
+                                { tag: 'h1', text: `Quote: #${findQuote?.invoice_number}` },
+                                { tag: 'p', text: `There has been a purchase order submitted for LEE LEE KIDDZ, please access the website to manage all requests.` },
+                                { tag: 'div', text: `Requests Date: ${fns.format(new UTCDate(),"MMM-dd-yyyy hh:mm:ss aaaa")}` },
+                                { tag: 'b', text: `Purchase Order: ${po_number}` },
+                            ]);
+
+                // Update Quote
+                const result = await collection.updateOne(query, 
+                    { 
+                        $set: {
+                            status: 'PO_SUBMITTED',
+                            status_date: new UTCDate(),
+                        },
+                        $addToSet:{ "purchase_orders": poFile }
+                    }
+                );
+
+                return { status: result.matchedCount > 0, mailStatus: mailRet };
+            } catch(ex){
+                log.error(`Uploading Purchase Order: ${ex}`);
+                return { "error": `Uploading Purchase Order`};
+            }
         }
     }
 }
@@ -1063,8 +1112,8 @@ function _buildInvoice(quote, is_invoice, line_item_filter=[]) {
                         <h1>${is_invoice == true || quote.status === "COMPLETED" ? "INVOICE":"QUOTE"}</h1>
                         <span>${is_invoice == true || quote.status === "COMPLETED" ? "Invoice":"Quote"} Number: ${(line_item_filter?.length > 0 ? `0${line_item_filter.join('')}` : '')}${quote.invoice_number}</span>
                         ${quote.status === "COMPLETED" ?
-                            `<span class='quote-date'>${fns.format(new Date(quote.status_date),'MM/dd/yyyy')}</span>` :
-                            `<span class='quote-date'>${fns.format(new Date(quote.creation_date),'MM/dd/yyyy')}</span>`
+                            `<span class='quote-date'>${fns.format(new UTCDate(quote.status_date),'MM/dd/yyyy')}</span>` :
+                            `<span class='quote-date'>${fns.format(new UTCDate(quote.creation_date),'MM/dd/yyyy')}</span>`
                         }    
                     </div>
                 </div>
@@ -1434,7 +1483,7 @@ async function _generatePdfFromHtml(htmlContent, file_name) {
             log.debug(`Creating File: ${file_path}`);
             fd = fs.openSync(file_path, 'w');
         } else {
-            file_path =`custom_invoices/${(new Date()).getTime()}_${file_name}`;
+            file_path =`custom_invoices/${(new UTCDate()).getTime()}_${file_name}`;
             log.debug(`Creating File Replacement File: ${file_path}`);
             fd = fs.openSync(file_path, 'w');
         }
