@@ -42,6 +42,8 @@ module.exports = gql`
         leagueStoreOrganizations(query:String, page:Int, pageSize: Int): PagedLeagueStoreOrganizations
         leagueStoreUsers(query:String, page:Int, pageSize: Int): PagedLeagueStoreUsers
         leagueStoreUser(id:String!): LeagueStoreUser
+
+        leagueStoreQuotes(status: String, pullAll: Boolean, page:Int, pageSize: Int): PagedLeagueStoreQuote
     }
 
     type Mutation {
@@ -344,6 +346,59 @@ module.exports = gql`
         billing_area_id: String
 
         merchantInfo: [LeagueStoreMerchantInfo]
+    }
+
+    type LeagueStoreQuoteAddOnItem {
+        id: Int
+        title: String
+        count: Int
+        minimum: Int
+    }
+
+    type LeagueStoreQuoteLineItem {
+        _id: String!
+        item_count: Int
+        overall_category_sel: String
+        item_additional_details: String
+        
+        design_name: String
+        design_description: String
+        design_img: String
+
+        store_item: LeagueStoreItem
+
+        add_on_list: [LeagueStoreQuoteAddOnItem]
+    }
+
+    type LeagueStoreQuoteDiscount {
+        percentage: Int
+        tag: String
+        title: String
+        total: Int
+    }
+
+    type LeagueStoreQuote {
+        _id: String!
+        ls_user_id: String
+        type: String
+        status: String
+        invoice_number: String
+
+        core_sub_total: Float
+        addon_sub_total: Float
+        total: Float
+
+        status_date: Date
+        creation_date: Date
+
+        discount: LeagueStoreQuoteDiscount
+        line_items: [LeagueStoreQuoteLineItem]
+    }
+
+    type PagedLeagueStoreQuote {
+        totalResults: Int
+        pagesLeft: Boolean
+        results: [LeagueStoreQuote]
     }
     
     type PagedLeagueStoreItems {

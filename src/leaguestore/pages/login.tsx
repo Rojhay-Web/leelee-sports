@@ -15,6 +15,7 @@ import google_logo from '../../assets/logo/google_logo.png';
 
 import { UserContextType } from "../../datatypes";
 import { LeagueLocationsType, LeagueStoreContextType, OrganizationType } from "../../datatypes/customDT";
+import { Link } from "react-router-dom";
 type LoginInputType = {
     email: string; password:string;
     firstName:string; lastName: string;
@@ -346,7 +347,7 @@ function LoginComponent(){
                         </div>
                         {!isRegistering &&
                             <div className="btn-container">
-                                <button className="forgot-btn" onClick={()=>{}}>Forgot Password?</button>
+                                <Link to="/forgotPassword" className="forgot-btn">Forgot Password?</Link>
                             </div>
                         }
 

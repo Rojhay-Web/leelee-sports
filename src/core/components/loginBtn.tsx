@@ -347,7 +347,10 @@ function UserAccessModal({ modalShow, closeModal }:AccessModalType){
 
             {isRegistering ?
                 <div className="login-change-link">Already have an account? <span onClick={()=> setIsRegistering(false)}>Login</span></div> : 
-                <div className="login-change-link">Don't have an account? <span onClick={()=> setIsRegistering(true)}>Register</span></div> 
+                <>
+                    <Link to="/forgotPassword" className="forgot-link" onClick={closeModal} >Forgot Password</Link>
+                    <div className="login-change-link">Don't have an account? <span onClick={()=> setIsRegistering(true)}>Register</span></div> 
+                </>
             }   
         </div>
     );

@@ -22,6 +22,7 @@ import AdminHome from "./admin/pages/blueprint/adminHome";
 import Layout from "./core/layout";
 import NoMatch from "./core/pages/nomatch";
 import Home from "./core/pages/home";
+import ForgotPassword from "./core/pages/forgotPassword";
 
 /* Toolbox */
 import ToolBoxLayout from "./toolbox/layout";
@@ -36,6 +37,7 @@ import LeagueStoreLayout, { leagueStoreComponents } from "./leaguestore/layout";
 import LeagueStoreLanding from "./leaguestore/pages/landing";
 
 const paths = [
+    { path: "/forgotPassword", element: ForgotPassword },
     { path: "*", element: NoMatch }
 ];
 

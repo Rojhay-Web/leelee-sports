@@ -7,6 +7,7 @@ const log = require('../services/log.service'),
     response = require('../utils/responseCode');
 
 const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/g;
+const validSpecialChars = { '!':true, '@':true, '$':true, '&':true, '_':true, '|':true, '?':true, '#':true };
 
 module.exports = {
     rateLimit: {
@@ -49,7 +50,7 @@ module.exports = {
         }
     },
     activeUserCheck(userValidation, roles=null){
-        if(!process.env.DEBUG && (userValidation.error || !userValidation.results)){
+        if((userValidation.error || !userValidation.results)){
             log.error(userValidation.error);
             throw new GraphQLError(userValidation.error, { extensions: { code: response.ERROR.UNAUTHORIZED } });
         } else if(roles && 
@@ -171,6 +172,24 @@ module.exports = {
                         if(!list[i]?.data || isNaN(list[i]?.data)){
                             ret.push(list[i]?.title ?? 'empty field');
                         }
+                        break;
+                    case "password":
+                        if(list[i]?.data?.length < 8){
+                            ret.push('password');
+                            break;
+                        }
+
+                        let u_case=0, l_case=0, special=0, numeric=0;
+                        Array.from(list[i]?.data).forEach((c) =>{
+                            if(c in validSpecialChars){ special++; }
+                            if(c.charCodeAt(0) >= 64 && c.charCodeAt(0) <= 90 ){ u_case++; }
+                            if(c.charCodeAt(0) >= 97 && c.charCodeAt(0) <= 122 ){ l_case++; }
+                            if(!isNaN(c)){ numeric++; }                            
+                        });
+
+                        if(u_case < 1 || l_case < 1 || special < 1 || numeric < 1){
+                            ret.push('password');                        
+                        }           
                         break;
                     default:
                         ret.push("invalid string type");

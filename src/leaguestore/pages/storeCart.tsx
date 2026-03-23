@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { ring } from 'ldrs';
 
 import leagueStoreContext from '../../context/leaguestore.context';
 import userContext from '../../context/user.context';
@@ -299,6 +300,7 @@ function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) 
 }
 
 export default function StoreCart(){
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [cartLineItems, setCartLineItems] = useState<QuoteLineItemType[]>([]);
 
@@ -416,14 +418,15 @@ export default function StoreCart(){
 
             if(res?.results){
                 // Download Invoice
-                downloadInvoice(res?.results);
+                await downloadInvoice(res?.results);
                 
                 toast.success(`Submitted Purchase Order`, { position: "top-right",
                     autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
                     draggable: true, progress: undefined, theme: "light" });
 
-                clearingLineItems(selectedCartTab);
-                
+                clearingLineItems(selectedCartTab); 
+                // Navigate back to home
+                navigate('/leaguestore');                
             } else {
                 toast.error(`Submitting Purchase Order: ${res?.error}`, { position: "top-right",
                     autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
@@ -479,7 +482,10 @@ export default function StoreCart(){
         generateInvoice();
     },[cartLineItems]);
 
-    useEffect(()=>{ window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); },[]);
+    useEffect(()=>{ 
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); 
+        ring.register();
+    },[]);
 
     return (
         <div className="ls-page ls-store-cart">
@@ -544,7 +550,10 @@ export default function StoreCart(){
                                     <div className="btn-container">
                                         <button className="submit" disabled={cartLineItems?.length === 0 || loading} onClick={submitPurchaseOrder}>
                                             <span className="btn-title">Submit Invoice</span>
-                                            <span className="btn-icon material-symbols-outlined">send_and_archive</span>
+                                            {loading ?
+                                                <span className="btn-icon"><l-ring size="12" stroke="2" speed="2" color="rgba(250,250,250,1)"/></span> :
+                                                <span className="btn-icon material-symbols-outlined">send_and_archive</span>
+                                            }
                                         </button>
 
                                         <p>If you have any questions feel free to contact: <a href="mailto:kevinricks@leeleeff.com" target="_blank">kevinricks@leeleeff.com</a></p>

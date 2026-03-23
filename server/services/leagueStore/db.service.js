@@ -788,6 +788,107 @@ module.exports = {
                 log.error(`Downloading Invoice: ${ex}`);
                 return { error:"Downloading Invoice: Please contact system admin [E-GP00]" };
             }
+        },
+        getQuotes: async function(user_id, status="", pullAll=false, page=1, pageSize=15){
+            try {
+                // Get Quote 
+                const collection = await dbCollection("ls_quotes");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                if(!pullAll && !user_id) {
+                    return {"error":"Invalid User"};
+                }
+
+                const offset = (page < 1 ? 0 : ((page - 1) * pageSize));
+                const matchQuery = {
+                    ...(status?.length > 0 ? { status: status }: {}),
+                    ...(!pullAll ? { "blueprint_user_id": user_id }: {})
+                };
+
+                // Find Quote
+                const findQuotes = await collection.aggregate([
+                    // Join with LS Users Table
+                    { $addFields: { "ls_user_obj_id": { "$toObjectId": "$ls_user_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "ls_users", 
+                            localField: "ls_user_obj_id", 
+                            foreignField: "_id", 
+                            as: "ls_user_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'ls_user': { $arrayElemAt: ['$ls_user_list', 0] }
+                        }
+                    },
+
+                    // Join with Users Table
+                    { $addFields: { "blueprint_user_id": { "$toObjectId": "$ls_user.blueprint_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "users", 
+                            localField: "blueprint_user_id", 
+                            foreignField: "_id", 
+                            as: "blueprint_user_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'blueprint_user': { $arrayElemAt: ['$blueprint_user_list', 0] }
+                        }
+                    },
+
+                    // Find Invoice
+                    { $match: matchQuery },
+
+                    // Remove the unnesseary field
+                    { 
+                        $project: { 
+                            'ls_user_list':0,
+                            'blueprint_user_list':0 
+                        } 
+                    },
+                    
+                    // Sort By New
+                    {
+                        $addFields: {
+                            containsStatus: {
+                                $regexMatch: {
+                                    input: "$status", regex: "NEW", options: "i" 
+                                }
+                            }
+                        }
+                    },
+                    { $sort: { containsSubstring: -1, status_date: -1 }},
+                    // Page & Count
+                    { 
+                        $facet: {
+                            "paginated_results": [
+                                { $skip: offset }, { $limit: pageSize }
+                            ],
+                            "total_count": [
+                                { $count: "count" } // Get the total count of documents after $match
+                            ]
+                        }
+                    }
+                ]).toArray();
+
+                const item_count = findQuotes[0]?.total_count?.length > 0 ? (findQuotes[0]?.total_count[0]?.count ?? 0) : 0;
+                
+                return { 
+                    results: findQuotes[0]?.paginated_results, 
+                    totalResults: item_count,
+                    pagesLeft: util.hasPagesLeft(page, pageSize, item_count) 
+                };
+            } catch(ex){
+                log.error(`Searching League Store Quotes: ${ex}`);
+                return { "error": `Searching League Store Quotes`};
+            }
         }
     }
 }

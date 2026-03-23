@@ -495,7 +495,7 @@ export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenu
                 setSelStoreItem(undefined);
 
                 // Success Toast
-                toast.success(`${(editLineItem?.quote_item_id) ? 'Updated' : 'Added'} Line Item`, { position: "top-right",
+                toast.success(`${(editLineItem?.quote_item_id) ? 'Updated' : 'Added'} Line Item`, { position: "top-left",
                     autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
                     draggable: true, progress: undefined, theme: "light" });
             }

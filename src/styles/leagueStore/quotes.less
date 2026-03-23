@@ -1,0 +1,117 @@
+.ls-quote-page {
+    padding: 2rem; min-height: calc(100vh - @storeMobileNavHeight);
+    .gradient-background-container {
+        position: absolute; content: '';
+        z-index: -1;
+        position: absolute; top: -50px; left: 0;
+        width: 100%; height: calc(100% + 3rem);
+        mask-image: linear-gradient(to bottom, transparent 0%, rgb(0, 0, 0) 12.5%, rgb(0, 0, 0) 75%, transparent 100%);
+        .gradient-background {
+            width: 100%; height: 100%; opacity: 0.25;
+            background-image: linear-gradient(to right, rgba(50,50,50, 1) 0%, transparent 70%, rgba(50,50,50, 1) 100%);
+        }
+    }
+
+    .content-section {
+        border-radius: 8px; 
+        height: calc(90vh - @storeMobileNavHeight - 4rem);
+        background: rgba(255,255,255,0.5); 
+        backdrop-filter: blur(2px); 
+        -webkit-backdrop-filter: blur(2px);
+        width: 100%; padding: 8px;
+        display: flex; flex-direction: column;
+
+        -moz-box-shadow: 0 2.5px 10px rgba(0, 0, 0, 0.5);
+            -webkit-box-shadow: 0 2.5px 10px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 2.5px 10px rgba(0, 0, 0, 0.5);
+
+        h1 { 
+            margin: 0 0 1rem; text-align: center; 
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2.5rem;
+
+            span { color: rgba(100,100,100,1); }
+        }
+
+        .pagination-container { margin-top: 1rem; }
+    }
+}
+
+.ls-table-container {
+    flex: 1;
+    overflow: auto;  // overflow-x: auto; 
+    position: relative; border-radius: 8px;
+    border: 2px solid @league-store-c2;
+    background-color: rgba(255,255,255,0.5);
+
+    .table-loading {
+        display: flex; flex-direction: column; 
+        justify-content: center; height: 100%;
+
+        * { margin: 0 auto; }
+    }
+
+    .ls-table {
+        min-width: 100%; border-spacing: 0;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-size: 1rem;
+
+        thead { position: sticky; top: 0; z-index: 50; }
+
+        th {
+            border-bottom: 2px solid @league-store-c1; 
+            font-weight: bold; position: relative;
+            text-align: center; padding: 8px;
+
+            .header-container {
+                display: flex; flex-direction: row;
+                justify-content: center; 
+                position: relative;
+                span { 
+                    position: absolute; right: 0;
+                    font-size: 16px; top: 50%;
+                    transform: translateY(-50%);
+                }
+                &.sortable { cursor: pointer; }
+            }
+
+            &::before {
+                content: ''; position: absolute;
+                left: 0; top: 0; width: 100%;
+                height: 100%; z-index: -1;
+                background-color: rgba(210, 161, 0,0.2);
+            }
+            &.empty-header { &::before { z-index: 1; } }
+            &+th { border-left: 2px solid @league-store-c1; }
+        }
+
+        tr {
+            position: relative;
+            td {
+                padding: 12px; text-align: center;
+
+                .usrmgt_cell {
+                    display: flex;
+                    &.ctr_cell { justify-content: center; }
+                    &.capitalize { text-transform: uppercase; font-weight: bold; }
+
+                    &.cell_status {
+                        &.new { color: rgba(0,150,0,1); }
+                    }
+                }
+
+                .update-user-btn {
+                    all: unset; padding: 4px 8px;
+                    color: @admin-color3; cursor: pointer;
+                    transition: 0.2s all ease-in-out;
+
+                    &:hover { color: @league-store-c1; }
+                }
+            }
+
+            &:nth-child(even) {
+                background-color: rgba(200,200,200,0.3);
+            }
+        }
+    }
+}

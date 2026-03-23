@@ -123,17 +123,29 @@ function Provider({ children }: { children: any }) {
             } else { 
                 // Add New Line Item
                 clone_line_item.quote_item_id = uuidv4();
+                // Dictionary to prevent duplicates being added
+                let add_store_map: any = {}; 
 
                 setStoreLineItems((p)=>{
                     let tmpStore = {...p };
 
-                    switch(clone_line_item?.store_item?.store_id){
-                        case "leagues":
-                            tmpStore.leagues.push(clone_line_item);
-                            break;
-                        case "apparel":
-                            tmpStore.apparel.push(clone_line_item);
-                            break;
+                    if(clone_line_item?.quote_item_id && !(clone_line_item.quote_item_id in add_store_map)) {
+                        switch(clone_line_item?.store_item?.store_id){
+                            case "leagues":
+                                // Add quote_item_id to Dictionary to prevent duplication
+                                if(clone_line_item?.quote_item_id) add_store_map[clone_line_item.quote_item_id] = true;
+                                
+                                // Add To List
+                                tmpStore.leagues.push(clone_line_item);
+                                break;
+                            case "apparel":
+                                // Add quote_item_id to Dictionary to prevent duplication
+                                if(clone_line_item?.quote_item_id) add_store_map[clone_line_item.quote_item_id] = true;
+                                
+                                // Add To List
+                                tmpStore.apparel.push(clone_line_item);
+                                break;
+                        }
                     }
 
                     return tmpStore;

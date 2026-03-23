@@ -92,9 +92,34 @@ module.exports = function(localStore) {
         }
     }
 
+    async function forgotPassword(req, res) {
+        try {
+            const ret = await auth.forgotPassword(req?.body?.email);
+            res.status(response.SUCCESS.OK).json(ret);
+        } catch(ex){
+            log.error(`Forgot Password Send Link: ${ex}`);
+            res.status(response.SERVER_ERROR.UNAVAILABLE).json({"error":`Error Sending Forgot Password Link: ${ex}`});
+        }
+    }
+
+    async function resetPassword(req, res) {
+        try {
+            const ret = await auth.resetPassword(req?.body?.email, req?.body?.token, req?.body?.password);
+            res.status(response.SUCCESS.OK).json(ret);
+        } catch(ex){
+            log.error(`Forgot Password Send Link: ${ex}`);
+            res.status(response.SERVER_ERROR.UNAVAILABLE).json({"error":`Error Sending Forgot Password Link: ${ex}`});
+        }
+    }
+
     // Apply the rate limiting middleware to express router.
     router.use(rateLimit(util.rateLimit));
 
+    // User Management
+    router.post("/forgotPassword", forgotPassword);
+    router.post("/resetPassword", resetPassword);
+
+    // Image Management
     router.get("/kaleidoscope/:image_id", viewImage);
     router.post("/image", upload.single('image'), uploadImage);
 

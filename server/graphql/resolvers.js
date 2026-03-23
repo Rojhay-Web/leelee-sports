@@ -237,6 +237,18 @@ module.exports = function (localStore) {
                 
                 return ret?.results;
             },
+            leagueStoreQuotes: async(_obj, args, context, _info) => {
+                // Validate Active User
+                util.activeUserCheck(context);
+
+                // Pull All Flag for LS Admins
+                const admin_all = args?.pullAll && util.checkUserRole(['LEAGUE_STORE_ADMIN'], context?.app_id?.roles);
+
+                let ret = await ls_db.purchaseOrder.getQuotes(context?.app_id?._id, args?.status, admin_all, args?.page, args?.pageSize);
+                util.checkGQLResults(ret);
+                
+                return ret;
+            },
         },
         Mutation:{
             upsertUser: async(_obj, args, context, _info) => {
