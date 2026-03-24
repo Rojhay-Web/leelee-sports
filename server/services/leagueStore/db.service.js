@@ -866,7 +866,7 @@ module.exports = {
                             }
                         }
                     },
-                    { $sort: { containsSubstring: -1, status_date: -1 }},
+                    { $sort: { containsStatus: -1, status_date: -1 }},
                     // Page & Count
                     { 
                         $facet: {
@@ -911,7 +911,11 @@ module.exports = {
                     return { "error": "No Files To Upload" };
                 }
                 
-                const poFile = { name: file.originalname, upload_dt: new UTCDate() }
+                const poFile = { 
+                    name: file.originalname, 
+                    upload_dt: new UTCDate(),
+                    po_number: po_number 
+                };
                 
                 // Set Quote File To Store Admin
                 const mailRet = await mail.sendEmailAttachment(EMAIL_SEND_TO, 'LEE LEE KIDDZ Purchase Order Submission', null, null, file, 
