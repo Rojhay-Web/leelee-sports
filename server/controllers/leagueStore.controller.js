@@ -60,10 +60,16 @@ module.exports = function() {
                 const ret = await ls_db.purchaseOrder.download(req.params.id, is_invoice, req.query?.filter_items);                
 
                 if(ret.results && fs.existsSync(ret.results)){
-                    res.download(ret.results, function(d_err){
+                    const pdf_file = ret.results;
+                    console.log(pdf_file);
+
+                    res.setHeader("Content-Type", "application/pdf");
+                    res.setHeader("Content-Disposition", `attachment; filename=${pdf_file.name}`);
+
+                    res.download(pdf_file, function(d_err){
                         if(ret?.fd != null){
                             fs.closeSync(ret?.fd);
-                            fs.unlinkSync(ret.results);
+                            fs.unlinkSync(pdf_file);
                         }                            
                     });
                 } else {

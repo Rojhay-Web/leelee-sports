@@ -10,6 +10,7 @@ import { UserContextType } from "../../datatypes";
 import { LeagueStoreContextType, PurchaseOrderType, QuoteLineItemType } from "../../datatypes/customDT";
 import { log } from "../../utils/log";
 import { API_URL, LS_API_URL, formatDate } from "../../utils";
+import { downloadBlobURL, getPrice } from "../../utils/_customUtils";
 
 type InvoiceDetailsType = {
     addon_sub_total: number;
@@ -24,16 +25,12 @@ type StoreCartLineItemType = {
     type: string;
 }
 
-type SubDetailRowType = {
+export type SubDetailRowType = {
     title:string;
     count: number;
     price: number;
 }
 
-const formatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-});
 const store_cart_config: any = {
     "leagues":{
         tab_direction:"left",
@@ -51,27 +48,12 @@ const store_cart_config: any = {
 
 import default_img from '../../assets/logo/leeleekiddz_league_store.png';
 
-
-
 function StoreCartLineItem({ type, lineItem, discount }: StoreCartLineItemType) {
     const [selImg, setSelImg] = useState<string|undefined>(undefined);
     const [subDetailRow, setSubDetailRow] = useState<SubDetailRowType[]>([]);
     const [priceDetails, setPriceDetails] = useState({ "core_total": 0, "addon_total": 0 });
 
     const { calcLineItemSubTotal, removeLineItem } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
-
-    const getPrice = (val?:number) => {
-        let ret = '$$';
-        try {
-            if(val){
-                ret = formatter.format(val);
-            }
-        } catch(ex){
-            log.error(`Getting Price: ${ex}`);
-        }
-
-        return ret;
-    }
 
     const getAddOnPrice = (title?:string) => {
         let ret = '$$';
@@ -381,19 +363,6 @@ export default function StoreCart(){
         setInvoiceValues(invoice_values);
     }
 
-    const getPrice = (val?:number) => {
-        let ret = '$$';
-        try {
-            if(val){
-                ret = formatter.format(val);
-            }
-        } catch(ex){
-            log.error(`Getting Price: ${ex}`);
-        }
-
-        return ret;
-    }
-
     const submitPurchaseOrder = async () => {
         try {
             setLoading(true);
@@ -462,8 +431,10 @@ export default function StoreCart(){
             // Create an object URL from the blob
             const _url = window.URL.createObjectURL(blob);
 
-            // Open the new window/tab
-            window.open(_url, '_blank')?.focus();
+            let filename = `leeleekiddz_quote.pdf`;
+            
+            // Download Invoice
+            downloadBlobURL(_url, filename);
         } catch(ex){
             log.error(`Downloading Invoice: ${ex}`);
         }

@@ -23,6 +23,7 @@ type CustomItemListToolType = {
 
 import leagueStoreContext from '../../context/leaguestore.context';
 
+import { getPrice } from "../../utils/_customUtils";
 import { API_URL, formatDate } from "../../utils";
 import { log } from "../../utils/log";
 
@@ -425,19 +426,6 @@ export default function StoreMenuItem({ type, item, setSelStoreItem }: StoreMenu
         } else if(item?.photos && dir > 0 && (selPhotoIdx + 1) < item?.photos?.length){
             setSelPhotoIdx((p) => p + 1);
         }
-    }
-
-    const getPrice = (val?:number) => {
-        let ret = '$$';
-        try {
-            if(val){
-                ret = formatter.format(val);
-            }
-        } catch(ex){
-            log.error(`Getting Price: ${ex}`);
-        }
-
-        return ret;
     }
 
     const toggleCount = (increase: boolean) => {

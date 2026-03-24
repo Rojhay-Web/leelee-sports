@@ -1,5 +1,11 @@
 import { isPast } from "date-fns";
 import { formatDateStr } from ".";
+import { log } from "./log";
+
+const formatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+});
 
 export const VIDEOS_URL = 'https://www.youtube.com/@LeeLeeKiddz/videos';
 
@@ -51,4 +57,42 @@ export const expiredDateStr = (dateStr?: string) => {
         console.log(`Checking Expired Dt: ${ex}`);
     }
     return ret;
+}
+
+export const getPrice = (val?:number) => {
+    let ret = '$$';
+    try {
+        if(val){
+            ret = formatter.format(val);
+        }
+    } catch(ex){
+        log.error(`Getting Price: ${ex}`);
+    }
+    
+    return ret;
+}
+
+export const downloadBlobURL = (url:any, filename?:string) => {
+    try {
+        // - Create a temporary anchor element
+        const link = document.createElement('a');
+
+        // - Set the anchor's attributes for download
+        link.href = url;
+        link.setAttribute('download', filename || 'download.pdf'); // Specify the filename
+        
+        // - Append the link to the document body (necessary for Firefox) and simulate a click
+        document.body.appendChild(link);
+        link.click();
+
+        // - Clean up by removing the link and revoking the object URL
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        
+        // Open the new window/tab
+        // window.open(url, '_blank','noopener,noreferrer')?.focus(); 
+    } catch(ex){
+        log.error(`Downloading Blob URL: ${ex}`);
+    }
 }

@@ -3,6 +3,10 @@ import { gql, useLazyQuery } from '@apollo/client';
 import { ripples } from 'ldrs';
 
 import { log } from "../../utils/log";
+import { getPrice } from "../../utils/_customUtils";
+import { API_URL, DEBOUNCE_TIME, formatDate } from "../../utils";
+
+import TablePaginationComponent from "../../toolbox/leagueStore/components/tablePaginationComponent";
 
 import { LeagueStoreItemType } from "../../datatypes/customDT";
 type StoreItemListType = {
@@ -21,11 +25,6 @@ type StoreListItemConfigType = {
     emptyText: string;
     itemElement?: (props:any)=> JSX.Element;
 }
-
-const formatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-});
 
 const GET_STORE_ITEM_QUERY = gql`
 query GetStoreItems($store_key: String, $query:String, $page:Int, $pageSize: Int){
@@ -74,8 +73,6 @@ query GetStoreItems($store_key: String, $query:String, $page:Int, $pageSize: Int
 
 // Images
 import default_img from '../../assets/logo/leeleekiddz_league_store.png';
-import { API_URL, DEBOUNCE_TIME, formatDate } from "../../utils";
-import TablePaginationComponent from "../../toolbox/leagueStore/components/tablePaginationComponent";
 
 const PAGE_SIZE = 8;
 const storeListItemConfig: { [key:string]: StoreListItemConfigType } = {
@@ -93,19 +90,6 @@ const storeListItemConfig: { [key:string]: StoreListItemConfigType } = {
 
 function LeagueStoreItem({ item, setSelStoreItem }: StoreItemComponentType) {
     const cover_photo =  item?.photos && item?.photos?.length > 0 ? item?.photos[0] : null;
-    
-    const getPrice = (val?:number) => {
-        let ret = '$$';
-        try {
-            if(val){
-                ret = formatter.format(val);
-            }
-        } catch(ex){
-            log.error(`Getting Price: ${ex}`);
-        }
-
-        return ret;
-    }
 
     return(
         <div className="item-container" onClick={()=> setSelStoreItem(item)}>
@@ -154,19 +138,6 @@ function LeagueStoreItem({ item, setSelStoreItem }: StoreItemComponentType) {
 
 function ApparelStoreItem({ item, setSelStoreItem }: StoreItemComponentType) {
     const cover_photo =  item?.photos && item?.photos?.length > 0 ? item?.photos[0] : null;
-    
-    const getPrice = (val?:number) => {
-        let ret = '$$';
-        try {
-            if(val){
-                ret = formatter.format(val);
-            }
-        } catch(ex){
-            log.error(`Getting Price: ${ex}`);
-        }
-
-        return ret;
-    }
 
     return(
         <div className="item-container" onClick={()=> setSelStoreItem(item)}>

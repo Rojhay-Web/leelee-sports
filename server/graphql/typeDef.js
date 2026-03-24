@@ -374,7 +374,7 @@ module.exports = gql`
         percentage: Int
         tag: String
         title: String
-        total: Int
+        total: Float
     }
 
     type LeagueStoreQuote {

@@ -704,7 +704,14 @@ module.exports = {
                 const result = await quote_collection.insertOne(purchase_order);
 
                 if(result.insertedId){
-                    // TODO: Send Email About New Quote
+                    
+                    mail.sendEmail(EMAIL_SEND_TO, 'New LEE LEE KIDDZ Quote', null, null,
+                            [
+                                { tag: 'h1', text: `Quote: #${purchase_order.invoice_number}` },
+                                { tag: 'p', text: `There has been a purchase order submitted for LEE LEE KIDDZ, please access the website to manage all requests.` },
+                                { tag: 'div', text: `Requests Date: ${fns.format(new UTCDate(),"MMM-dd-yyyy hh:mm:ss aaaa")}` },
+                            ]);
+
                     return { results: result.insertedId };
                 } 
 
@@ -1077,14 +1084,14 @@ function _buildInvoice(quote, is_invoice, line_item_filter=[]) {
 
             // Build Filter Discount Total
             if(quote?.discount?.total && quote?.discount?.percentage) {
-                tmp_discount_total = -(tmp_core_sub_total * (quote.discount.percentage / 100));
+                tmp_discount_total = (tmp_core_sub_total * (quote.discount.percentage / 100));
                 filter_invoice.discount.total = tmp_discount_total;
             }
 
             filter_invoice.core_sub_total = tmp_core_sub_total;
             filter_invoice.addon_sub_total = tmp_addon_sub_total;
 
-            filter_invoice.total = (tmp_core_sub_total + tmp_discount_total) + tmp_addon_sub_total;
+            filter_invoice.total = (tmp_core_sub_total - tmp_discount_total) + tmp_addon_sub_total;
         }
 
         // Build Header - Meta Data

@@ -1,34 +1,24 @@
-import { CSSProperties, Dispatch, SetStateAction, useContext, useEffect, useRef, useState } from "react";
+import { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Column, ColumnDef, flexRender, getCoreRowModel, SortingState, useReactTable } from "@tanstack/react-table";
 import { gql, useLazyQuery } from '@apollo/client';
-import { toast } from "react-toastify";
 import Rodal from "rodal";
-import { ring } from 'ldrs';
+
+import { DownloadQuote, UploadQuotePO } from "../components/quoteModalSub";
 
 import { PurchaseOrderType } from "../../datatypes/customDT";
 import TablePaginationComponent from "../../toolbox/leagueStore/components/tablePaginationComponent";
 
 import { log } from "../../utils/log";
-import { formatDateStr, LS_API_URL } from "../../utils";
-import { UserContextType } from "../../datatypes";
-
-import userContext from '../../context/user.context';
+import { formatDateStr } from "../../utils";
+import { getPrice } from "../../utils/_customUtils";
 
 
 const PAGE_SIZE = 10;
-const formatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-});
 
 const modalStyles = {
     height: 'calc(70vh - 70px)',
     width: (window.innerWidth > 770 ? '40%' : 'calc(100% - 45px)'), 
 };
-type QuoteModalSubType = {
-    selectedQuote?:PurchaseOrderType,
-    closeModal: () => void
-}
 
 type QuoteModalType = {
     modalType: string,
@@ -60,6 +50,11 @@ query GetQuotes($page:Int, $pageSize: Int){
                     minimum
                     price_per_item
                     additional_set_price
+                    
+                    details {
+                      start_dt
+                      end_dt
+                    }
 
                     addons {
                         title
@@ -71,136 +66,24 @@ query GetQuotes($page:Int, $pageSize: Int){
                     count
                 }
             }
+
+            discount {
+                percentage
+                total
+            }
         }
     }
 }`;
-function DownloadQuote({ selectedQuote, closeModal }: QuoteModalSubType){
-    return(
-        <>
-
-        </>
-    )
-}
-
-function UploadQuotePO({ selectedQuote, closeModal }: QuoteModalSubType){
-    const [orderNumber, setOrderNumber] = useState("");
-    const [poFile, setPoFile] = useState<any>(null);
-    const [loading, setLoading] = useState(false);
-
-    const fileRef = useRef<HTMLInputElement>(null);
-
-    const { token } = useContext(userContext.UserContext) as UserContextType;
-
-    const handleFileInput = (e: any) => {
-        if(e?.target?.files?.length > 0) {
-            setPoFile(e.target.files[0]);
-            e.target.value = null;
-        }        
-    }
-
-    const removePOFile = (e: any) => {
-        setPoFile(null);
-        e.stopPropagation();
-    }
-
-    const submitPO = async () => {
-        if(poFile !== null && orderNumber?.length > 0 && selectedQuote?._id){
-            setLoading(true);
-            const postData = new FormData();
-            postData.append("purchaseOrder", poFile);
-            postData.append("quoteId", selectedQuote._id);
-            postData.append("poNumber", orderNumber);
-
-            const response = await fetch(`${LS_API_URL}/purchase_order/upload`, {
-                method: "POST", body: postData,
-                headers: {
-                    "Authorization": token ?? "",
-                    "Accept": "application/json", 
-                }
-            });
-
-            const res = await response.json();
-            if(res?.status){
-                toast.success(`Uploaded Purchase Order`, { position: "top-right",
-                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
-                    draggable: true, progress: undefined, theme: "light" });
-
-                closeModal();
-
-                // Clean Up
-                setPoFile(null);
-                setOrderNumber("");
-            } else {
-                toast.error(`Uploading Purchase Order: ${res?.error}`, { position: "top-right",
-                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
-                    draggable: true, progress: undefined, theme: "light" });
-            }
-
-            setLoading(false);
-        }
-    }
-
-    useEffect(()=>{ ring.register(); },[]);
-
-    return(
-        <div className="upload-container">
-            <h1>Upload Purchase Order</h1>
-            <h2>Quote #{selectedQuote?.invoice_number}</h2>
-            <div className="content-container">
-                <span className="icon material-symbols-outlined">cloud_upload</span>
-                <p>Please upload your official Purchase Order file (PDF, PNG, or JPG) to finalize your quote. Ensure the PO number and total amount entered below match the uploaded PO.</p>
-
-                <div className="action-container">
-                    <div className="custom-input-container">
-                        <span className="input-title">Purchase Order File</span>
-                        <div className={`input-container file-selector ${poFile ? '' : 'empty-file'}`} onClick={()=>{ fileRef?.current?.click(); }}>
-                            {poFile ?
-                                <>
-                                    <span className="input-icon material-symbols-outlined">attach_file</span>
-                                    <span>{poFile?.name}</span>
-
-                                    <button className="remove-btn" onClick={removePOFile}>
-                                        <span className="material-symbols-outlined">delete</span>
-                                    </button>
-                                </> :
-                                <>
-                                    <span className="input-icon material-symbols-outlined">draft</span>
-                                    <span>No File Uploaded</span>
-                                </>
-                            }                            
-
-                            <input className='file_selector' type="file" name="poFile"  
-                                ref={fileRef} onChange={handleFileInput} />
-                        </div>
-                    </div>
-
-                    <div className="custom-input-container">
-                        <span className="input-title">Purchase Order #</span>
-                        <div className="input-container">
-                            <input type="text" name="email" value={orderNumber} 
-                                placeholder="Please enter your PO#"
-                                onChange={(e)=> setOrderNumber(e.target.value)} />
-                        </div>
-                    </div>
-
-                    <button className="upload-button" disabled={poFile === null || orderNumber?.length === 0 || loading} onClick={submitPO}>
-                        {loading ? 
-                            <span><l-ring size="22" stroke="2" speed="2" color="rgba(250,250,250,1)"/></span> :
-                            <span className="material-symbols-outlined">upload_file</span>
-                        }
-                        <span>Upload Purchase Order</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    )
-}
 
 function QuoteModal({ modalType, modalStatus, selectedQuote, setModalStatus, setSelectedQuote }: QuoteModalType){
     const closeModal = () => {
         setModalStatus(false);
         setSelectedQuote(undefined);
     }
+
+    useEffect(()=>{
+        document.body.classList.toggle('noscroll', modalStatus);
+    },[modalStatus])
 
     return(
         <Rodal className="quote-editor-modal" 
@@ -306,19 +189,6 @@ export default function Quotes(){
         getQueryItems({ variables:{ page: page, pageSize: PAGE_SIZE } });
     }
 
-    const getPrice = (val?:number) => {
-        let ret = '$$';
-        try {
-            if(val){
-                ret = formatter.format(val);
-            }
-        } catch(ex){
-            log.error(`Getting Price: ${ex}`);
-        }
-
-        return ret;
-    }
-
     useEffect(()=>{
         if(!selectedQuote){
             if(page === 1) {
@@ -411,13 +281,15 @@ export default function Quotes(){
                                                 )
                                             })}
                                             {/* Column For Actions*/}
-                                            <td>
+                                            <td style={{ width: 240 }}>
                                                 <button className='update-user-btn' onClick={()=> { selectQuote(row.original, "download") }}>
-                                                    <span className="material-symbols-outlined">cloud_download</span>
+                                                    <span className="icon material-symbols-outlined">cloud_download</span>
+                                                    <span className="title">Download</span>
                                                 </button>
 
                                                 <button className='update-user-btn' onClick={()=> { selectQuote(row.original, "upload") }}>
-                                                    <span className="material-symbols-outlined">upload_file</span>
+                                                    <span className="icon material-symbols-outlined">upload_file</span>
+                                                    <span className="title">Upload PO</span>
                                                 </button>
                                             </td>
                                         </tr>

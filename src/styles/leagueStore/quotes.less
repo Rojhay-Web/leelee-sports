@@ -101,11 +101,25 @@
                 }
 
                 .update-user-btn {
-                    all: unset; padding: 4px 8px;
-                    color: @admin-color3; cursor: pointer;
+                    all: unset; padding: 4px 16px;
+                    color: rgba(50,50,50,1); cursor: pointer;
+                    display: inline-flex; flex-direction: row;
                     transition: 0.2s all ease-in-out;
+                    .league-store-c1(background, 0.3);
 
-                    &:hover { color: @league-store-c1; }
+                    border-radius: 32px;
+
+                    span { 
+                        align-content: center; 
+
+                        &.title { font-size: .8rem; }
+                        &.icon { font-size: 1.5rem; }
+                        &+span { margin-left: .25rem; }
+                    }
+
+                    &:hover { .league-store-c1(background, 0.7); }
+
+                    &+.update-user-btn { margin-left: 1rem; }
                 }
             }
 
@@ -128,10 +142,14 @@
 
             .upload-container {
                 display: flex; flex-direction: column;
+                overflow: hidden;
                 
                 h1, h2 { margin: 0; }
 
-                h2 { font-size: 1rem; color: rgba(50,50,50,1); }
+                h2 { 
+                    font-size: 1rem; color: rgba(50,50,50,1); 
+                    span { color: rgba(200,0,0,1); margin-left: 0.5rem; }
+                }
 
                 .content-container { 
                     margin: 1rem 0;
@@ -223,6 +241,166 @@
 
                             &:hover:not(:disabled) { background: darken(@league-store-c1, 20%);  }
                         }
+                    }
+                }
+
+                .cart-line-items-container {
+                    flex: 1; display: flex;
+                    flex-direction: column;
+                    padding: 0.5rem 1rem;
+                    overflow-y: auto;
+
+                    .download-li-container { 
+                        display: flex; flex-direction: row;
+                        opacity: 0.5;
+
+                        .selected-box {
+                            margin: calc(1rem + 25px) 1rem auto 4px;
+                            width: 1rem; height: 1rem;
+                            min-width: 1rem; min-height: 1rem;
+                            border-radius: 50%;
+                            border: 2px solid rgba(50,50,50,1);
+                            cursor: pointer;
+
+                            &.sel { background: @league-store-c3; }
+                        }
+
+                        .downloaded-list-sel {
+                            margin: calc(1rem + 25px) 4px auto 1rem;
+
+                            span { 
+                                font-size: 2rem; color: rgba(0,150,0,1); 
+                                &.empty { display: block; min-width: 2rem; }
+                            }
+                        }
+
+                        &.avaliable { opacity: 1; }
+
+                        &+.download-li-container { border-top: 1px solid rgba(50,50,50,0.1); }
+                    }
+
+                    .cart-line-item {
+                        padding: 1rem 0.5rem; 
+                        display: flex; flex: 1;
+                        flex-direction: row;
+
+                        .cart-img-container { 
+                            display: flex; flex-direction: column;
+                            text-align: center; justify-content: center;
+                            background-color: rgba(170,170,170,0.7);
+                            width: 5rem; height: 5rem; border-radius: 8px;
+
+                            span { font-size: 2rem; color: rgba(100,100,100,1); }
+                        }
+
+                        .line-item-table {
+                            flex: 1; padding: 0 0.5rem;
+                            tr {
+                                td {
+                                    vertical-align: top;
+                                    .content-details {
+                                        padding: 0 .5rem; display: flex;
+                                        flex-direction: column;
+
+                                        .title { 
+                                            font-weight: bold; font-size: 1rem; 
+                                        }
+
+                                        .additional-description {
+                                            font-size: 0.8rem; font-style: italic;
+                                            padding: 0.5rem;
+                                        }
+
+                                        .date-row {
+                                            display: flex; flex-direction: row;
+                                            font-size: 0.8rem; padding: 2px 4px;
+                                            color: @league-store-c2;
+                                            span { &+span { margin-left: 0.25rem; }}
+                                        }
+
+                                        .sub-detail-container {
+                                            padding: 4px; table-layout: auto;
+                                            // width: 350px;
+
+                                            .sdr-row {
+                                                font-size: 0.8rem;
+                                                .sdr-title { font-weight: bold; }
+                                                .count-price { 
+                                                    text-align: right; 
+                                                    padding-left: 100px;
+
+                                                    @media @mobile-nav { padding-left: 2rem; }
+                                                }
+                                            }
+
+                                            @media @mobile-nav { width: initial; }
+                                        }
+                                    }
+
+                                    &.price {
+                                        width: 50px; text-align: right;
+                                        font-size: 1rem;
+                                        font-weight: bold;
+
+                                        .price-breakdown {
+                                            display: flex; 
+                                            flex-direction: column;
+
+                                            .discounted { 
+                                                text-decoration: line-through; 
+                                                opacity: 0.5;
+                                            }
+
+                                            .discounted-price {
+                                                font-size: 0.8rem;
+                                                text-align: center;
+                                                color: rgba(100,0,0,1);
+
+                                                @media @mobile-nav { font-size: .8rem; }
+                                            }
+                                        }
+
+                                        @media @mobile-nav { font-size: 1rem; }
+                                    }
+                                }
+                            }
+
+                            @media @mobile-nav { padding: 0; }
+                        }
+                    }
+                }
+
+                .btn-container {
+                    display: flex; flex-direction: row;
+
+                    button {
+                        all: unset; margin-top: 1rem;
+                        padding: 8px 16px; border-radius: 4px;
+                        background: @league-store-c3; color: #fff;
+                        text-align: center; font-weight: bold;
+                        cursor: pointer; display: flex;
+                        flex-direction: row; flex: 1;
+                        justify-content: center;
+                        transition: 0.4s all ease-in-out;
+
+                        span { 
+                            align-content: center;
+                            &+span { margin-left: 0.5rem; }
+                        }
+
+                        &.all { 
+                            background: @league-store-c1;
+                            &:hover:not(:disabled) { background: darken(@league-store-c1, 20%);  }
+                        }
+
+                        &:disabled { 
+                            cursor: not-allowed; opacity: 0.5;
+                            background-color: rgba(150,150,150,1); 
+                        }
+
+                        &:hover:not(:disabled):not(&.all) { background: darken(@league-store-c3, 20%);  }
+                        
+                        &+button { margin-left: 1rem; }
                     }
                 }
             }
