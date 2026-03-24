@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useContext, useEffect, useRef, useState } from "react";
 import { gql, useLazyQuery } from '@apollo/client';
 import { ripples } from 'ldrs';
 
@@ -8,7 +8,9 @@ import { API_URL, DEBOUNCE_TIME, formatDate } from "../../utils";
 
 import TablePaginationComponent from "../../toolbox/leagueStore/components/tablePaginationComponent";
 
-import { LeagueStoreItemType } from "../../datatypes/customDT";
+import leagueStoreContext from '../../context/leaguestore.context';
+
+import { LeagueStoreContextType, LeagueStoreItemType } from "../../datatypes/customDT";
 type StoreItemListType = {
     type: string;
     selStoreItem?: LeagueStoreItemType;
@@ -27,8 +29,8 @@ type StoreListItemConfigType = {
 }
 
 const GET_STORE_ITEM_QUERY = gql`
-query GetStoreItems($store_key: String, $query:String, $page:Int, $pageSize: Int){
-    storeItems(store_key: $store_key, query: $query, active: true, page: $page, pageSize: $pageSize){
+query GetStoreItems($location_id: String, $store_key: String, $query:String, $page:Int, $pageSize: Int){
+    storeItems(location_id: $location_id, store_key: $store_key, query: $query, active: true, page: $page, pageSize: $pageSize){
         totalResults
         pagesLeft
         results {
@@ -167,6 +169,9 @@ export default function StoreItemList({ type, selStoreItem, setSelStoreItem }: S
     const pageRender = useRef({query: false, storeItem: false});
     const sectionRef = useRef<HTMLDivElement>(null);
 
+    const { leagueStoreUser } = useContext(leagueStoreContext.LeagueStoreContext) as LeagueStoreContextType;
+        
+
     const [getStoreItems, { loading, data }] = useLazyQuery(GET_STORE_ITEM_QUERY, { fetchPolicy: 'no-cache' });
 
     const searchQuery = (e:any) => {
@@ -180,7 +185,11 @@ export default function StoreItemList({ type, selStoreItem, setSelStoreItem }: S
 
     const queryData = () => {
         setLoadDelay(true);
-        getStoreItems({ variables:{ store_key: type, query: query, page: page, pageSize: PAGE_SIZE } });
+        getStoreItems({ variables:{
+            location_id: leagueStoreUser?.organization?.billing_area_id, 
+            store_key: type, query: query, 
+            page: page, pageSize: PAGE_SIZE } 
+        });
     }
 
     useEffect(() => {

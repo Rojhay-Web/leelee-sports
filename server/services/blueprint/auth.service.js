@@ -130,7 +130,13 @@ module.exports = {
             // Reset Password
             const result = await collection.updateOne(
                 { email: email },  
-                {  $set: { password: hash } }
+                {  
+                    $set: { 
+                        password: hash,
+                        resetExpiration: undefined,
+                        resetToken: undefined
+                    } 
+                }
             );
 
             const tmpUser = { ...user };

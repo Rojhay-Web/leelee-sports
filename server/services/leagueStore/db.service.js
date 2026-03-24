@@ -49,7 +49,8 @@ const league_store_config = {
                 { type:"number", data: item?.minimum, title: "minimum" },
                 { type:"number", data: item?.additional_set_price, title: "additional_set_price" }
             ];
-        }
+        },
+        "locationBased": true
     },
     "apparel":{
         "default_sort": {
@@ -64,7 +65,8 @@ const league_store_config = {
             return [
                 { type:"number", data: item?.minimum, title: "minimum" },
             ]; 
-        }
+        },
+        "locationBased": false
     }
 }
 
@@ -290,13 +292,13 @@ module.exports = {
 
     // Store Items
     storeItems: {
-        search: async function(store_key=null, query=null, active=true, sortType=null, sortAsc=null, page=1, pageSize=15){
+        search: async function(location_id=null, store_key=null, query=null, active=true, sortType=null, sortAsc=null, page=1, pageSize=15){
             try {
                 const collection = await dbCollection("ls_store_items");
                 if(collection == null){
                     return { "error": "Unable to connect to DB [Please contact site admin]"};
                 }
-
+                
                 let safeQuery = _.escapeRegExp(query);
                 const offset = ((page - 1) * pageSize);
                 const sort = sortType && sortAsc != null ? 
@@ -308,31 +310,40 @@ module.exports = {
                             league_store_config[store_key].default_sort.inactive 
                         )
                     )};
-                
+
+                let buildAnd = [];
+                let buildOr = [];
+
+                if(store_key in league_store_config) {
+                    buildAnd = buildAnd.concat(league_store_config[store_key].search_subquery.active);
+                    buildOr = buildOr.concat(league_store_config[store_key].search_subquery.inactive);
+                    
+                    if(location_id && league_store_config[store_key].locationBased) {
+                        buildAnd.push({
+                            $or:[                                
+                                { "details.locations": { "$exists": false } },                                
+                                { "details.locations": null },
+                                { "details.locations": [] },
+                                { "details.locations._id": {$in: [location_id]} }
+                            ]
+                        });
+                    }
+                } else {
+                    buildAnd.push({ active: true });
+                    buildOr.push({ active: { $ne: true } });
+                }
+
                 const colQuery = {
                     ...(store_key ? { "store_id": store_key } : {}),
                     $or: [
                         { title: {'$regex': safeQuery, '$options' : 'i'} },
                         { description: {'$regex': safeQuery, '$options' : 'i'} },
                     ],
-                    ...(active ? 
-                        {
-                            $and:[ ...(store_key in league_store_config ? 
-                                league_store_config[store_key].search_subquery.active : 
-                                [{ active: true }]) 
-                            ]
-                        } : 
-                        {
-                            $or: [ ...(store_key in league_store_config ? 
-                                league_store_config[store_key].search_subquery.inactive : 
-                                [{ active: { $ne: true } }]) 
-                            ]
-                        }
-                    )
+                    ...(active ? { $and: [...buildAnd] } : { $or: [...buildOr] })
                 };
                 
                 const queryItems = await collection.aggregate([
-                    { $match: colQuery},
+                    { $match: colQuery },
                     // Join with league_sports table to get icon by sportid
                     { $addFields: { "details.sport_info_id": { "$toObjectId": "$details.sport_id" }}},
                     { 
@@ -377,6 +388,8 @@ module.exports = {
                     // Sort Document By Field
                     { $sort: { ...sort } },
                 ]).toArray();
+
+                // console.log(queryItems);
 
                 const queryCount = await collection.countDocuments(colQuery);
 
@@ -450,6 +463,24 @@ module.exports = {
 
                 const aggList = [
                     { $match: colQuery },
+
+                    // Join with Locations Table
+                    { $addFields: { "ls_org_location_id": { "$toObjectId": "$billing_area_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "ls_locations", 
+                            localField: "ls_org_location_id", 
+                            foreignField: "_id", 
+                            as: "ls_location_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'location': { $arrayElemAt: ['$ls_location_list', 0] }
+                        }
+                    },
+
                     // Skips the first N documents
                     { $skip: offset }
                 ];
@@ -551,17 +582,52 @@ module.exports = {
                             'blueprint_user': { $arrayElemAt: ['$blueprint_user_list', 0] }
                         }
                     },
+                    // Join with LS Org Table
+                    { $addFields: { "ls_org_id": { "$toObjectId": "$organization_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "ls_organizations", 
+                            localField: "ls_org_id", 
+                            foreignField: "_id", 
+                            as: "ls_org_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'organization': { $arrayElemAt: ['$ls_org_list', 0] }
+                        }
+                    },
+
+                    // Join with Locations Table
+                    { $addFields: { "ls_org_location_id": { "$toObjectId": "$organization.billing_area_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "ls_locations", 
+                            localField: "ls_org_location_id", 
+                            foreignField: "_id", 
+                            as: "ls_location_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'location': { $arrayElemAt: ['$ls_location_list', 0] }
+                        }
+                    },
+
                     // Remove the lookup fields
-                    { $project: { 'blueprint_user_list': 0, 'full_blueprint_id': 0 } },
+                    { $project: { 
+                        'blueprint_user_list': 0, 'full_blueprint_id': 0, 
+                        'ls_location_list': 0, 'ls_org_list': 0
+                    }},
 
                     // Search Users if Query exists
                     { $match: colQuery },
                     // Skips the first N documents
                     { $skip: offset }, 
                     // Limits the remaining documents to M          
-                    ...((page > 0) && { $limit: pageSize }),
-                    // Sort Document By Field
-                    ...(sort && { $sort: { ...sort } }),
+                    { $limit: pageSize },
                 ]).toArray();
 
                 const queryCount = await collection.countDocuments(colQuery);
@@ -600,6 +666,24 @@ module.exports = {
                             'blueprint_user': { $arrayElemAt: ['$blueprint_user_list', 0] }
                         }
                     },
+
+                    // Join with LS Org Table
+                    { $addFields: { "ls_org_id": { "$toObjectId": "$organization_id" }}},
+                    { 
+                        $lookup: {  
+                            from: "ls_organizations", 
+                            localField: "ls_org_id", 
+                            foreignField: "_id", 
+                            as: "ls_org_list" 
+                        }
+                    },
+                    // Replace the array with just the first element
+                    { 
+                        $addFields: {
+                            'organization': { $arrayElemAt: ['$ls_org_list', 0] }
+                        }
+                    },
+
                     // Remove additional fields
                     { 
                         $project: { 
@@ -651,7 +735,8 @@ module.exports = {
                     if("_id" in setDict) delete setDict._id;
 
                     const result = await collection.updateOne(userQuery, { $set: setDict});
-                    return { results: (result.matchedCount ? result?.upsertedId : null) };
+                    
+                    return { results: (result.matchedCount ? true : false) };
                 }
                 
                 // CREATE New League Store User

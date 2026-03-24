@@ -37,15 +37,6 @@ export type LeagueStoreUIConfigType = {
     }
 }
 
-export type LeagueStoreUserType = {
-    _id?: string;
-    blueprint_id?: string;
-    blueprint_user?: User;
-
-    sub_org_name?: string;
-    organization_id?: string;
-}
-
 export type StoreLineItemType = {
     leagues: QuoteLineItemType[];
     apparel: QuoteLineItemType[];
@@ -64,6 +55,26 @@ export type PurchaseOrderDiscountType = {
 }
 
 // Classes
+export class LeagueStoreUserType {
+    _id?: string;
+    blueprint_id?: string;
+    blueprint_user?: User;
+
+    sub_org_name?: string;
+    organization_id?: string;
+
+    organization?: OrganizationType;
+    location?: LeagueLocationsType;
+
+    //constructor(__id: string, _blueprint_id: string, _sub_org_name?:string, _organization_id?:string ) {
+    constructor(tmpUser?: LeagueStoreUserType){
+        this._id = tmpUser?._id;
+        this.blueprint_id = tmpUser?.blueprint_id;
+        this.sub_org_name = tmpUser?.sub_org_name;
+        this.organization_id = tmpUser?.organization_id;
+    }
+}
+
 export class LeagueSportType {
     _id?: string;
     title?: string; 

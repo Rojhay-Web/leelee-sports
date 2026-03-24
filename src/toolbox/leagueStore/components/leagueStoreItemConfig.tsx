@@ -562,6 +562,7 @@ export default function LeagueStoreItemManager({ type, selLeagueStoreItem, setSe
 
     const queryData = () => {
         setLoadDelay(true);
+        console.log({ store_key: type, query: query, active: active, page: page, pageSize: PAGE_SIZE });
         getStoreItems({ variables:{ store_key: type, query: query, active: active, page: page, pageSize: PAGE_SIZE } });
     }
 

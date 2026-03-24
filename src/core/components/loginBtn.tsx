@@ -14,7 +14,7 @@ import { log } from "../../utils/log";
 // Images
 import google_logo from '../../assets/logo/google_logo.png';
 import miles_logo from '../../assets/logo/miles_logo_c1.png';
-// TODO: ADD SITE LOGO
+// ADD SITE LOGO
 import leaguestore_logo from '../../assets/logo/leeleekiddz_league_store.png';
 
 type LoginInputType = {

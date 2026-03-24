@@ -37,7 +37,7 @@ module.exports = gql`
         storeConfigs(key: String): [LeagueStoreConfig]
         leagueLocations: [LeagueLocations]
         
-        storeItems(store_key: String, query:String, active:Boolean, page:Int, pageSize: Int): PagedLeagueStoreItems
+        storeItems(location_id: String, store_key: String, query:String, active:Boolean, page:Int, pageSize: Int): PagedLeagueStoreItems
 
         leagueStoreOrganizations(query:String, page:Int, pageSize: Int): PagedLeagueStoreOrganizations
         leagueStoreUsers(query:String, page:Int, pageSize: Int): PagedLeagueStoreUsers
@@ -333,6 +333,9 @@ module.exports = gql`
 
         sub_org_name: String
         organization_id: String
+
+        organization: LeagueStoreOrganization
+        location: LeagueLocations
     }
 
     type LeagueStoreOrganization {
@@ -344,6 +347,7 @@ module.exports = gql`
         zip: String
 
         billing_area_id: String
+        location: LeagueLocations
 
         merchantInfo: [LeagueStoreMerchantInfo]
     }

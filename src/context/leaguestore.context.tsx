@@ -25,6 +25,10 @@ query GetLeagueStoreUser($id: String!){
             family_name
             name
         }
+
+        organization {
+            billing_area_id
+        }
     }
 }`;
 

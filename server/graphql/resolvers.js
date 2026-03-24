@@ -5,7 +5,6 @@ const fns = require('date-fns');
 const db = require('../services/blueprint/db.service.js'), 
     events = require('../services/blueprint/events.service.js'),
     videos = require('../services/blueprint/videos.service.js'),
-    log = require('../services/log.service.js'),
     util = require('../utils/util.js');
 
 // League Store Services
@@ -205,7 +204,8 @@ module.exports = function (localStore) {
             storeItems: async(_obj, args, context, _info) => {
                 // Validate Active User
                 util.activeUserCheck(context);
-                let ret = await ls_db.storeItems.search(args?.store_key, args?.query, args?.active, null, null, args?.page, args?.pageSize);
+
+                let ret = await ls_db.storeItems.search(args?.location_id, args?.store_key, args?.query, args?.active, null, null, args?.page, args?.pageSize);
                 util.checkGQLResults(ret);
                 
                 return ret;

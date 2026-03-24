@@ -1,157 +1,117 @@
 import { CSSProperties, Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { Column, ColumnDef, flexRender, getCoreRowModel, SortingState, useReactTable } from "@tanstack/react-table";
 import { gql, useLazyQuery, useMutation } from "@apollo/client";
+import { Column, ColumnDef, flexRender, getCoreRowModel, SortingState, useReactTable } from "@tanstack/react-table";
 import Rodal from "rodal";
 import { spiral } from 'ldrs';
 import * as _ from 'lodash';
-import { toast } from "react-toastify";
 
+import { LeagueStoreUserType } from "../../../datatypes/customDT";
 import { log } from "../../../utils/log";
-import { DEBOUNCE_TIME, handleGQLError } from "../../../utils";
-
-// Types
-import { OrganizationType } from "../../../datatypes/customDT";
+import { DEBOUNCE_TIME } from "../../../utils";
 import { adminSideModalStyle } from "../../../utils/_customUtils";
 import TableManagementModalRow from "./tableManagementRow";
+import { toast } from "react-toastify";
 
-type OrganizationManagerType = {
-    selOrganization?: OrganizationType,
-    setSelectedOrganization: Dispatch<SetStateAction<OrganizationType | undefined>>,
+
+type LeagueStoreUsersConfigType = {
+    selUser?: LeagueStoreUserType,
+    setSelectedUser: Dispatch<SetStateAction<LeagueStoreUserType | undefined>>,
 }
 
-type OrganizationManagerModalType = {
-    selOrganization?: OrganizationType,
-    setSelectedOrganization: Dispatch<SetStateAction<OrganizationType | undefined>>,
+type LeagueStoreUsersModalType = {
     modalStatus: boolean,
     setModalStatus: Dispatch<SetStateAction<boolean>>,
+    selUser?: LeagueStoreUserType,
+    setSelectedUser: Dispatch<SetStateAction<LeagueStoreUserType | undefined>>,
 }
 
 const PAGE_SIZE = 15;
 // GQL
-const GET_ORGANIZATIONS_QUERY = gql`
-query GetOrganizations($query:String, $page:Int, $pageSize: Int){
-    leagueStoreOrganizations(query: $query, page: $page, pageSize: $pageSize){
+const GET_USERS_QUERY = gql`
+query GetUsers($query:String, $page:Int, $pageSize: Int){
+    leagueStoreUsers(query: $query, page: $page, pageSize: $pageSize){
         totalResults
         pagesLeft
         results {
             _id
-            name
-            address
-            city
-            state
-            zip
-            billing_area_id
-            location {
+            blueprint_id
+            sub_org_name
+            organization_id
+
+            blueprint_user {
+                email
                 name
             }
 
-            merchantInfo {
-                title
-                subText
-                defaultLogo
-                store_id
+            organization {
+                name
+                billing_area_id
+            }
+            
+            location {
+                name
             }
         }
     }
 }`,
-UPSERT_ORGANIZATION_MUTATION = gql`
-mutation UpdateOrganization($id:String, $item: JSONObj){
-    upsertLeagueStoreOrganization(id: $id, item: $item)
-}`,
-REMOVE_FEATURE_ITEM_MUTATION = gql`
-mutation RemoveLeagueStoreFeatureItem($id:String!, $type: String!){
-    deleteLeagueStoreFeatureItem(id: $id, type: $type)
+UPSERT_LS_USER_MUTATION = gql`
+mutation UpsertUser($id:String, $item: JSONObj){
+    upsertLeagueStoreUser(id: $id, item: $item)
 }`;
 
-function OrganizationManagerModal({ modalStatus, setModalStatus, selOrganization, setSelectedOrganization }:OrganizationManagerModalType){
+function LeagueStoreUsersModal({ modalStatus, setModalStatus, selUser, setSelectedUser }:LeagueStoreUsersModalType){
     const [key, setKey] = useState(0);
-    const [editOrganization, setEditOrganization] = useState<OrganizationType|undefined>();
     const [inProgress, setInProgress] = useState(false);
+    const [editUser, setEditUser] = useState<LeagueStoreUserType|undefined>();
 
-    const pageTitle = (selOrganization?._id !== undefined ? `Update Organization` : 'Add Organization');
+    const [upsertLSUser,{ loading: upsert_loading, data: upsert_data, error: upsert_error }] = useMutation(UPSERT_LS_USER_MUTATION, {fetchPolicy: 'no-cache'});
+
     const detailsConfig = {
         fields:[
-            { icon:'title', title: 'Organization Name', key:'name', type: 'text', net_new_active: false },
-            { icon:'home_pin', title: 'Address', key:'address', type: 'text', net_new_active: false },
-            { icon:'home_pin', title: 'City', key:'city', type: 'text', net_new_active: false },
-            { icon:'home_pin', title: 'State', key:'state', type: 'text', net_new_active: false },
-            { icon:'home_pin', title: 'Zip', key:'zip', type: 'text', net_new_active: false },
+            { icon:'signature', title: 'Name', key:'name', type: 'view_only_text_nested', nested:["blueprint_user", "name"], net_new_active: false },
+            { icon:'alternate_email', title: 'Email', key:'email', type: 'view_only_text_nested', nested:["blueprint_user", "email"], net_new_active: false },
 
-            { icon:'location_chip', title: 'Billing Area', key:'billing_area_id', type: 'location_merchant_select', net_new_active: false, overflow_field_content: true },
-            { icon:'receipt', title: 'Merchant Invoice Details', key:'merchantInfo', type: 'merchant_details', net_new_active: false }
+            { icon:'edit_location', title: 'School Name', key:'sub_org_name', type: 'text', net_new_active: false },
+            { icon:'location_chip', title: 'Organization', key:'organization_id', type: 'organization_select', net_new_active: false, overflow_field_content: true },
         ]
     };
 
-    const [upsertOrganization,{ loading: upsert_loading, data: upsert_data, error: upsert_error }] = useMutation(UPSERT_ORGANIZATION_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
-    const [removeFeatureItem,{ loading: remove_loading, data: remove_data, error: remove_error }] = useMutation(REMOVE_FEATURE_ITEM_MUTATION, {fetchPolicy: 'no-cache', onError: handleGQLError});
-    
     const closeModal = () => {
         setModalStatus(false); 
-        setSelectedOrganization(undefined);
+        setSelectedUser(undefined);
     }
 
-    const validateLoc = () => {
-        let ret = [];
-        try {
-            if(!editOrganization?.name){
-                ret.push('Add Name');
-            }
+    const saveUser = () => {
+        if(editUser?.blueprint_id) {
+            const tmpUser = new LeagueStoreUserType(editUser);
 
-            if(editOrganization?.merchantInfo){                
-                editOrganization.merchantInfo.forEach((mi) => {
-                    if(!(mi?.title && mi?.title?.length > 0)){
-                        ret.push(`Add ${mi?.store_id} Invoice Title`);
-                    }
-
-                    if(!(mi?.subText && mi?.subText?.length > 0)){
-                        ret.push(`Add ${mi?.store_id} Invoice Address Line`);
-                    }
-                });
-            }
-        } catch(ex){
-            log.error(`Validating Config: ${ex}`);
-            ret.push('[EC 001]');
-        }
-
-        return ret;
-    }
-
-    const saveOrganization = () => {
-        // Validate Data
-        const validations = validateLoc();
-        if(validations?.length > 0){
-            toast.warning(`Please Check the following: ${validations?.join(', ')}`, { position: "top-right",
-                autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
-                draggable: true, progress: undefined, theme: "light" });
-        } else {
-            upsertOrganization({ variables:{
-                id: editOrganization?._id ?? undefined,
-                item: editOrganization
-            }});
-        }
-    }
-
-    const deleteOrganization = () => {
-        if(selOrganization?._id && window.confirm(`Are you sure you want to delete this organization?`)){
-            removeFeatureItem({ variables: { id: selOrganization._id, type: 'ls_organizations' }})
+            upsertLSUser({ 
+                variables: { id: tmpUser?.blueprint_id, item: tmpUser }
+            });
         }
     }
 
     useEffect(()=>{ 
-        if(selOrganization){
+        if(selUser){
             setModalStatus(true);
-            setEditOrganization(_.cloneDeep(selOrganization));
+            setEditUser(_.cloneDeep(selUser));
         }
-    },[selOrganization]);
+    },[selUser]);
 
     useEffect(()=>{
         try {
-            const areEqual = _.isEqual(selOrganization, editOrganization);
+            const areEqual = _.isEqual(selUser, editUser);
             setInProgress(!areEqual);
         } catch(ex){
             log.error(`Checking Edit Progress: ${ex}`);
         }
-    }, [editOrganization]);
+    }, [editUser]);
+
+    useEffect(()=>{
+        if(modalStatus) {
+            setKey((p) => p+1);
+        }
+    },[modalStatus]);
 
     useEffect(()=>{ 
         if(!upsert_loading ){
@@ -159,43 +119,18 @@ function OrganizationManagerModal({ modalStatus, setModalStatus, selOrganization
                 const errorMsg = JSON.stringify(upsert_error, null, 2);
                 console.log(errorMsg);
 
-                toast.error(`Error Adding/Updating This Orgaization: ${upsert_error.message}`, { position: "top-right",
+                toast.error(`Error Updating User: ${upsert_error.message}`, { position: "top-right",
                     autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
                     draggable: true, progress: undefined, theme: "light" });
-            } else if(upsert_data?.upsertLeagueStoreOrganization){
+            } else if(upsert_data?.upsertLeagueStoreUser){
                 closeModal();
-                toast.success(`Adding/Updating This Orgaization`, { position: "top-right",
+                toast.success(`Updated User`, { position: "top-right",
                     autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
                     draggable: true, progress: undefined, theme: "light" });
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     },[upsert_loading, upsert_data, upsert_error]);
-
-    useEffect(()=>{ 
-        if(!remove_loading ){
-            if(remove_error){
-                const errorMsg = JSON.stringify(remove_error, null, 2);
-                console.log(errorMsg);
-
-                toast.error(`Error Removing Orgaization: ${remove_error.message}`, { position: "top-right",
-                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
-                    draggable: true, progress: undefined, theme: "light" });
-            } else if(remove_data?.deleteLeagueStoreFeatureItem){
-                closeModal();
-                toast.success(`Removed Orgaization`, { position: "top-right",
-                    autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
-                    draggable: true, progress: undefined, theme: "light" });
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[remove_loading, remove_data, remove_error]);
-
-    useEffect(()=>{
-        if(modalStatus) {
-            setKey((p) => p+1);
-        }
-    },[modalStatus]);
 
     return(
         <Rodal className="user-management-editor-modal" 
@@ -204,11 +139,11 @@ function OrganizationManagerModal({ modalStatus, setModalStatus, selOrganization
         >
             <div className='user-management-editor-container' key={key}>
                 <div className='header-row'>
-                    <span>Manage Store Config</span>
+                    <span>Manage Store Users</span>
                 </div>
 
                 <div className='title-row'>
-                    <h1>{pageTitle}</h1>
+                    <h1>Update Store User</h1>
                     {inProgress && 
                         <div className='edit-in-progress'>
                             <span className="icon material-symbols-outlined">edit_square</span>
@@ -220,14 +155,14 @@ function OrganizationManagerModal({ modalStatus, setModalStatus, selOrganization
                 <div className='field-list-container'>
                     {detailsConfig.fields?.map((field:any, i: number) => {
                         return(
-                            <TableManagementModalRow<OrganizationType> key={i} field={field} item={editOrganization} setItem={setEditOrganization} />
+                            <TableManagementModalRow<LeagueStoreUserType> key={i} field={field} item={editUser} setItem={setEditUser} />
                         );
                     })}
                 </div>
 
                 <div className='editor-actions-container'>
                     <div className='button-list'>
-                        <button className='list-btn save' disabled={upsert_loading || !inProgress} onClick={saveOrganization}>
+                        <button className='list-btn save' disabled={upsert_loading || !inProgress} onClick={saveUser}>
                             {upsert_loading ? 
                                 <div className='btn-icon loader'>
                                     <l-spiral size="14" speed="0.9" color="#fff" />
@@ -236,96 +171,68 @@ function OrganizationManagerModal({ modalStatus, setModalStatus, selOrganization
                             }
                             <span className='btn-text'>Save</span>
                         </button>
-
-                        {(selOrganization?._id !== undefined ) &&
-                            <button className='list-btn delete' onClick={deleteOrganization}>
-                                <span className="btn-icon material-symbols-outlined">delete_forever</span>
-                                <span className='btn-text'>Delete Organization</span>
-                            </button>
-                        }
                     </div>
                 </div>
             </div>
         </Rodal>
-    )
+    );
 }
 
-// League Store Manager
-export default function OrganizationConfig({ selOrganization, setSelectedOrganization }:OrganizationManagerType){
+// League Store Users Manager
+export default function LeagueStoreUsersConfig({selUser, setSelectedUser}:LeagueStoreUsersConfigType){
     const [displaySearch, setDisplaySearch] = useState("");
     const [query, setQuery] = useState("");
-
+    
     const [page, setPage] = useState(1);
 
-    const [columns] = useState<ColumnDef<OrganizationType>[]>([
+    const [columns] = useState<ColumnDef<LeagueStoreUserType>[]>([
         { 
             id:"name",
-            header: 'Organization Name', accessorKey: 'name', 
+            header: 'Name', accessorKey: 'name', 
             cell: ({ row }: { row: any }) => { 
-                return <div className="usrmgt_cell ctr_cell">{row.original.name}</div>
+                return <div className="usrmgt_cell ctr_cell">{row.original.blueprint_user?.name ?? 'N/A'}</div>
             }
         },
         { 
-            id:"address",
-            header: 'Address', accessorKey: 'address', 
+            id:"email",
+            header: 'Email', accessorKey: 'email', 
             cell: ({ row }: { row: any }) => { 
-                return <div className="usrmgt_cell ctr_cell">{row.original.address}</div>
+                return <div className="usrmgt_cell ctr_cell">{row.original.blueprint_user?.email ?? 'N/A'}</div>
             }
         },
         { 
-            id:"city",
-            header: 'City', accessorKey: 'city', 
+            id:"sub_org_name",
+            header: 'School Name', accessorKey: 'sub_org_name', 
             cell: ({ row }: { row: any }) => { 
-                return <div className="usrmgt_cell ctr_cell">{row.original.city}</div>
+                return <div className="usrmgt_cell ctr_cell">{row.original.sub_org_name ?? 'N/A'}</div>
             }
         },
         { 
-            id:"state",
-            header: 'State', accessorKey: 'state', 
+            id:"org_name",
+            header: 'Organization Name', accessorKey: 'org_name', 
             cell: ({ row }: { row: any }) => { 
-                return <div className="usrmgt_cell ctr_cell">{row.original.state}</div>
-            }
-        },
-        { 
-            id:"zip",
-            header: 'Zip', accessorKey: 'zip', 
-            cell: ({ row }: { row: any }) => { 
-                return <div className="usrmgt_cell ctr_cell">{row.original.zip}</div>
+                return <div className="usrmgt_cell ctr_cell">{row.original.organization?.name ?? 'N/A'}</div>
             }
         },
         { 
             id:"location",
             header: 'Location', accessorKey: 'location', 
             cell: ({ row }: { row: any }) => { 
-                return <div className="usrmgt_cell ctr_cell">{row.original?.location?.name ?? 'N/A'}</div>
-            }
-        },
-        { 
-            id:"merchantInfo",
-            header: 'Merchant Count', accessorKey: 'merchantInfo', 
-            cell: ({ row }) => { 
-                const merchantInfoList = row.original.merchantInfo;
-
-                return <div className="usrmgt_cell roles ctr_cell">
-                        {merchantInfoList && merchantInfoList?.length > 0 &&
-                            <div className='additional-roles-container'>
-                                <div className={`additional-roles`}>{merchantInfoList?.length}</div>
-                            </div>
-                        }
-                    </div>;
+                return <div className="usrmgt_cell ctr_cell">{row.original.location?.name ?? 'N/A'}</div>
             }
         },
     ]);
-    const [sorting, setSorting] = useState<SortingState>([]);
-    
-    const [tableData, setTableData] = useState<OrganizationType[]>([]);
 
+    const [sorting, setSorting] = useState<SortingState>([]);
+        
+    const [tableData, setTableData] = useState<LeagueStoreUserType[]>([]);
+    
     const [loadDelay, setLoadDelay] = useState(false);
     const [modalStatus, setModalStatus] = useState(false);
-
+    
     const pageRender = useRef({ page: false, modalStatus: false });
 
-    const [getOrganizations, { loading, data }] = useLazyQuery(GET_ORGANIZATIONS_QUERY, { fetchPolicy: 'no-cache' });
+    const [getUsers, { loading, data }] = useLazyQuery(GET_USERS_QUERY, { fetchPolicy: 'no-cache' });
     
     const table = useReactTable({
         data: tableData,
@@ -337,8 +244,8 @@ export default function OrganizationConfig({ selOrganization, setSelectedOrganiz
         columnResizeMode: "onChange",
         onSortingChange: setSorting,
     });
-    
-    const getCommonPinningStyles = (column: Column<OrganizationType>): CSSProperties => {
+
+    const getCommonPinningStyles = (column: Column<LeagueStoreUserType>): CSSProperties => {
         const isPinned = column.getIsPinned();
         const isLastPinned = isPinned === "left" && column.getIsLastColumn("left");
         const width = column.getSize();
@@ -351,7 +258,7 @@ export default function OrganizationConfig({ selOrganization, setSelectedOrganiz
             boxShadow: isLastPinned ? "rgba(170, 170, 170, 0.3) 4px 0px 4px -2px" : undefined
         };
     }
-
+    
     const searchQuery = (e:any) => {
         try {
             setDisplaySearch(e.target.value);
@@ -363,18 +270,7 @@ export default function OrganizationConfig({ selOrganization, setSelectedOrganiz
 
     const queryData = () => {
         setLoadDelay(true);
-        getOrganizations({ variables:{ query: query, page: page, pageSize: PAGE_SIZE } });
-    }
-
-    const cloneOrganizationItem = (item: OrganizationType) => {
-        try {
-            let tmpItem = new OrganizationType();
-            tmpItem.generateClone(item);
-            
-            setSelectedOrganization(tmpItem);
-        } catch(ex){
-            log.error(`Cloning League: ${ex}`);
-        }
+        getUsers({ variables:{ query: query, page: page, pageSize: PAGE_SIZE } });
     }
 
     useEffect(() => {
@@ -399,8 +295,8 @@ export default function OrganizationConfig({ selOrganization, setSelectedOrganiz
         if(loading === false) {
             delayLoadTimeoutId = setTimeout(() => { setLoadDelay(false); }, 500);
 
-            if(data?.leagueStoreOrganizations){
-                setTableData(data.leagueStoreOrganizations?.results ?? []);
+            if(data?.leagueStoreUsers){
+                setTableData(data.leagueStoreUsers?.results ?? []);
             } else {
                 setTableData([]);
             }
@@ -427,19 +323,14 @@ export default function OrganizationConfig({ selOrganization, setSelectedOrganiz
             <div className="league-store-table-cell">
                 <div className="table-ctrl-container">
                     <div className="table-title">
-                        <h3>Organizations Manager</h3>
+                        <h3>League Store Users Manager</h3>
                     </div>
 
                     <div className="ctrl-actions">
                         <div className="action-input-container">
                             <span className="material-symbols-outlined">search</span>
-                            <input type="text" name="query" placeholder='Search Organizations' value={displaySearch} onChange={searchQuery} />
+                            <input type="text" name="query" placeholder='Search Users' value={displaySearch} onChange={searchQuery} />
                         </div>
-
-                        <button className='table-action-btn' onClick={()=>{ setSelectedOrganization(new OrganizationType()) }}>
-                            <span className="material-symbols-outlined">add_circle</span>
-                            <span className="btn-title">Add Organization</span>
-                        </button>
                     </div>
                 </div>
 
@@ -494,11 +385,7 @@ export default function OrganizationConfig({ selOrganization, setSelectedOrganiz
                                             })}
                                             {/* Column For Actions*/}
                                             <td>
-                                                <button className='update-user-btn' onClick={()=> { cloneOrganizationItem(row.original) }}>
-                                                    <span className="material-symbols-outlined">copy_all</span>
-                                                </button>
-
-                                                <button className='update-user-btn' onClick={()=> { setSelectedOrganization(row.original) }}>
+                                                <button className='update-user-btn' onClick={()=> { setSelectedUser(row.original) }}>
                                                     <span className="material-symbols-outlined">more_vert</span>
                                                 </button>
                                             </td>
@@ -511,7 +398,7 @@ export default function OrganizationConfig({ selOrganization, setSelectedOrganiz
                 </div>
             </div>
 
-            <OrganizationManagerModal modalStatus={modalStatus} setModalStatus={setModalStatus} selOrganization={selOrganization} setSelectedOrganization={setSelectedOrganization} />
+            <LeagueStoreUsersModal modalStatus={modalStatus} setModalStatus={setModalStatus} selUser={selUser} setSelectedUser={setSelectedUser} />
         </>
     );
 }

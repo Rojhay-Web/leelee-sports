@@ -9,7 +9,7 @@ import 'react-date-range/dist/theme/default.css'; // theme css file
 
 import { log } from "../../../utils/log";
 import { formatDate } from "../../../utils";
-import { GoogleIcons, LeagueLocationsType, LeagueSportType, LeagueStoreAddon, LeagueStoreConfigType, LeagueStoreMerchantInfo, StoreItemDetails } from "../../../datatypes/customDT";
+import { GoogleIcons, LeagueLocationsType, LeagueSportType, LeagueStoreAddon, LeagueStoreConfigType, LeagueStoreMerchantInfo, OrganizationType, StoreItemDetails } from "../../../datatypes/customDT";
 
 // GQL
 const GET_ICONS_QUERY = gql`
@@ -52,6 +52,17 @@ query GetLeagueSports{
       title
       icon
     }
+}`,
+GET_ORGANIZATIONS_QUERY = gql`
+query GetOrganizations{
+    leagueStoreOrganizations{
+        totalResults
+        pagesLeft
+        results {
+            _id
+            name
+        }
+    }
 }`;
 
 
@@ -64,6 +75,7 @@ export type TableManagementDetailsFieldsType<P> = {
     title_vert_set?:boolean;
     overflow_field_content?:boolean;
     conditional_fields?:(keyof P)[];
+    nested: string[];
 }
 
 export type TableManagementModalRowType<P> = { 
@@ -408,6 +420,66 @@ function LocationMerchantSelectInput({ fieldKey, fieldValue, setItemValue }: Loc
                     singleSelect
                     options={location_data?.leagueLocations ?? []}
                     selectedValues={(selectedLocation ? [selectedLocation] : [])}
+                    placeholder={`Select League Location(s)`}
+                    onSelect={(_: any, selectedItem: any) => toggleLocationSelect(selectedItem, true)}
+                    onRemove={(_: any, selectedItem: any) => toggleLocationSelect(selectedItem, false)}
+                    style={{
+                        chips: {
+                            backgroundColor: 'rgba(186,142,35,1)',
+                            fontSize: '10px',
+                        },
+                        searchBox:{
+                            borderWidth:'2px', borderColor: 'rgba(170,170,170,1)',
+                            borderRadius: '8px'
+                        }
+                    }}
+                />
+            }
+        </>
+    )
+}
+
+function OrganizationSelectInput({ fieldKey, fieldValue, setItemValue }: LocationMerchantSelectInputType) {
+    const [refreshTool, setRefreshTool] = useState(false);
+    const [selectedOrg, setSelectedOrg] = useState<OrganizationType | undefined>();
+
+    const { loading: org_loading, data: org_data }= useQuery(GET_ORGANIZATIONS_QUERY, { fetchPolicy: 'no-cache' });
+
+    const toggleLocationSelect = (selection: any, add: boolean) => {
+        let tmpFieldVal = _.cloneDeep(fieldValue);
+        tmpFieldVal = (add && selection?._id) ? selection._id : null;
+        setItemValue({ target: { name: fieldKey, value: tmpFieldVal }});
+    }
+
+    useEffect(()=>{
+        if(!org_loading && fieldValue && fieldValue.length > 0){
+            let filterOrg = org_data?.leagueStoreOrganizations?.results.filter((s: LeagueLocationsType) => s._id === fieldValue);
+            const tmpSelOrg = filterOrg?.length > 0 ? filterOrg[0] : { "_id": fieldValue, "name": "Misc Org Location" };
+
+            setSelectedOrg(tmpSelOrg);
+        }
+    },[fieldValue, org_loading]);
+
+    useEffect(() => {
+        setRefreshTool(true);
+        let delayLoadTimeoutId = setTimeout(() => { setRefreshTool(false); }, 500);
+
+        return () => {
+            clearTimeout(delayLoadTimeoutId);
+        };
+    }, []);
+
+    return(
+        <>
+            {org_loading || refreshTool ? <div className="store-item-details-dropdown loading"/> :
+                <Multiselect
+                    displayValue="name"
+                    isObject={true}
+                    loading={org_loading}
+                    className="store-item-details-dropdown"
+                    singleSelect
+                    options={org_data?.leagueStoreOrganizations?.results ?? []}
+                    selectedValues={(selectedOrg ? [selectedOrg] : [])}
                     placeholder={`Select League Location(s)`}
                     onSelect={(_: any, selectedItem: any) => toggleLocationSelect(selectedItem, true)}
                     onRemove={(_: any, selectedItem: any) => toggleLocationSelect(selectedItem, false)}
@@ -939,6 +1011,22 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
         return (tmpText?.length == 0 ? '' : tmpText.join(' '));
     }
 
+    const generateNestedText = () => {
+        let tmpText: string = "";
+
+        try {
+            if(field?.nested){
+                // returns undefined if any key is missing
+                tmpText = field.nested.reduce((currentObj: any, key:any) => {
+                    return currentObj && currentObj[key];
+                }, item) as string;
+            }
+        } catch(ex) {
+            log.error(`Generating Nested Text: ${ex}`);
+        }
+        return tmpText
+    }
+
     const toggleValue = () => {
         const toggleValue = item && !!item[field.key] ? false: true;
         setItemDetails({ target: { name: field.key, value: toggleValue }});
@@ -1007,6 +1095,16 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
                         {!(generateText().length > 0) ?
                             <span className='unset-text'>Field Not Set</span> :
                             <span className='valid-text'>{generateText()}</span>
+                        }
+                    </div>
+                }
+
+                {/* View Only NESTED Text String */}
+                {(field.type === 'view_only_text_nested') &&
+                    <div className='view-text'>
+                        {!(generateNestedText() && generateNestedText().length > 0) ?
+                            <span className='unset-text'>Field Not Set</span> :
+                            <span className='valid-text'>{generateNestedText()}</span>
                         }
                     </div>
                 }
@@ -1118,6 +1216,13 @@ export default function TableManagementModalRow<P>({ storeConfig, field, item, s
                 {/* Location Merchant Toggle */}
                 {(field.type === 'location_merchant_select') &&
                     <LocationMerchantSelectInput setItemValue={setItemDetails} fieldKey={dynamicKey} 
+                        fieldValue={(item ? item[field.key] as string : undefined)}
+                    />
+                }
+
+                {/* Location Merchant Toggle */}
+                {(field.type === 'organization_select') &&
+                    <OrganizationSelectInput setItemValue={setItemDetails} fieldKey={dynamicKey} 
                         fieldValue={(item ? item[field.key] as string : undefined)}
                     />
                 }
