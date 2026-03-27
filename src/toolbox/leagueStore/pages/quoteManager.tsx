@@ -1,15 +1,17 @@
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useContext, useEffect, useRef, useState } from "react";
 import { gql, useLazyQuery, useMutation } from '@apollo/client';
 import { Column, ColumnDef, flexRender, getCoreRowModel, SortingState, useReactTable } from "@tanstack/react-table";
 import { toast } from "react-toastify";
 import { spiral, ring } from 'ldrs';
 
 import { PurchaseOrderType } from "../../../datatypes/customDT";
-import { getPrice } from "../../../utils/_customUtils";
-import { formatDateStr } from "../../../utils";
+import { downloadBlobURL, getPrice } from "../../../utils/_customUtils";
+import { formatDateStr, LS_API_URL } from "../../../utils";
 import TablePaginationComponent from "../components/tablePaginationComponent";
 import { log } from "../../../utils/log";
+import { UserContextType } from "../../../datatypes";
 
+import userContext from '../../../context/user.context';
 
 // GQL
 const GET_QUOTES_QUERY = gql`
@@ -54,6 +56,8 @@ const QUOTE_STATUS_LIST = [
 export default function QuoteManager(){
     const [page, setPage] = useState(1);
     const [loadDelay, setLoadDelay] = useState(false);
+    const [loadDownload, setLoadDownload] = useState(false);
+
     const [quoteStatus, setQuoteStatus] = useState("");
     const [updatedInvoiceNumber, setUpdatedInvoiceNumber] = useState<string|undefined>(); 
     const [tableData, setTableData] = useState<PurchaseOrderType[]>([]);
@@ -116,6 +120,8 @@ export default function QuoteManager(){
 
     const pageRef = useRef(false);
 
+    const { token } = useContext(userContext.UserContext) as UserContextType;
+
     const [getQueryItems, { loading, data }] = useLazyQuery(GET_QUOTES_QUERY, { fetchPolicy: 'no-cache' });
     const [updateQuote,{ loading: update_loading, data: update_data, error: update_error }] = useMutation(UPSERT_QUOTE_MUTATION, {fetchPolicy: 'no-cache'});
     
@@ -171,6 +177,45 @@ export default function QuoteManager(){
         } catch(ex){
             log.error(`Updating Row Status: ${ex}`)
         }
+    }
+
+    const downloadInvoice = async (invoice_id?: string, invoice_number?:number) => {
+        try {
+            if(invoice_id){
+                setUpdatedInvoiceNumber(invoice_number?.toString());
+                setLoadDownload(true);
+
+                let file_invoice_number = `${invoice_number ?? 'NA'}`;
+                let baseUrl = `${LS_API_URL}/quote/download/${invoice_id}`;
+
+                const response = await fetch(baseUrl, {
+                    method: "GET", 
+                    headers: {
+                        'Content-Type': 'application/json',
+                        "Authorization": token ?? "",
+                    }
+                });
+
+                if (!response.ok) {
+                    toast.error(`Downloading Quote`, { position: "top-right",
+                        autoClose: 5000, hideProgressBar: false, closeOnClick: true, pauseOnHover: true,
+                        draggable: true, progress: undefined, theme: "light" });
+                }
+
+                const blob = await response.blob();
+                // Create an object URL from the blob
+                const _url = window.URL.createObjectURL(blob);
+
+                let filename = `leeleekiddz_invoice_${file_invoice_number}.pdf`;
+
+                // Download Invoice
+                downloadBlobURL(_url, filename);    
+            }
+        } catch(ex){
+            log.error(`Downloading Invoice: ${ex}`);
+        }
+
+        setLoadDownload(false);
     }
 
     useEffect(() => { 
@@ -277,6 +322,7 @@ export default function QuoteManager(){
 
                                         {/* Empty Header For Actions*/}
                                         <th className='empty-header'>Change Status</th>
+                                        <th className='empty-header' />
                                     </tr>
                                 ))}
                             </thead>
@@ -314,6 +360,15 @@ export default function QuoteManager(){
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </td>
+
+                                            <td>
+                                                {(loadDownload && updatedInvoiceNumber === row.original.invoice_number) ?
+                                                    <l-ring size="14" stroke="2" speed="2" color="rgba(50,50,50,1)" /> :
+                                                    <button className='update-user-btn' onClick={()=> { downloadInvoice(row.original?._id, row.original?.invoice_number) }}>
+                                                        <span className="material-symbols-outlined">cloud_download</span>
+                                                    </button>
+                                                }
                                             </td>
                                         </tr>
                                     )
