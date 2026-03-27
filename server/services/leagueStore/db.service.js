@@ -933,7 +933,7 @@ module.exports = {
                     // Replace the array with just the first element
                     { 
                         $addFields: {
-                            'blueprint_user': { $arrayElemAt: ['$blueprint_user_list', 0] }
+                            'ls_user.blueprint_user': { $arrayElemAt: ['$blueprint_user_list', 0] }
                         }
                     },
 
@@ -958,7 +958,7 @@ module.exports = {
                             }
                         }
                     },
-                    { $sort: { containsStatus: -1, status_date: -1 }},
+                    { $sort: { containsStatus: -1, status:-1, status_date: -1 }},
                     // Page & Count
                     { 
                         $facet: {
@@ -1033,6 +1033,25 @@ module.exports = {
             } catch(ex){
                 log.error(`Uploading Purchase Order: ${ex}`);
                 return { "error": `Uploading Purchase Order`};
+            }
+        },
+        updateStatus: async function(_id, status) {
+            try {
+                // Get Quote DB
+                const collection = await dbCollection("ls_quotes");
+                if(collection == null){
+                    return { "error": "Unable to connect to DB [Please contact site admin]"};
+                }
+
+                const result = await collection.updateOne(
+                    { _id: new ObjectId(_id) }, 
+                    { $set: { status: status, status_date: new UTCDate(), }}
+                );
+
+                return { status: result.matchedCount > 0 };
+            } catch(ex){
+                log.error(`Updating Quote Status: ${ex}`);
+                return { "error": `Updating Quote Status`};
             }
         }
     }

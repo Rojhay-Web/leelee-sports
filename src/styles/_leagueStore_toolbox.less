@@ -202,6 +202,53 @@
                 object-fit: cover;
             }
         }
+
+        .table-action-input {
+            border: 2px solid @league-store-c1; border-radius: 16px;
+            display: flex; flex-direction: row; padding: 4px 8px;
+            background: rgba(50,50,50,1); position: relative;
+            overflow: hidden;
+
+            select { 
+                flex: 1; border: none; color: @league-store-c1;
+                font-size: 1rem; width: 100%; position: relative;
+                background: transparent; z-index: 1;
+                cursor: pointer;
+            }
+
+            .select-loading {
+                position: absolute; top: 0; left: 0;
+                width: 100%; height: 100%; z-index: 2;
+                background: rgba(50,50,50,0.2);
+                align-content: center; border-radius: 16px;
+                display: none;
+
+                backdrop-filter: blur(2px); 
+                -webkit-backdrop-filter: blur(2px);
+
+                &.active { display: block; }
+            }
+        }
+
+        &.cell_status {
+            &.new { color: rgba(0,150,0,1); }
+            &.po_submitted { color: @league-store-c2; }
+            &.completed { color: @league-store-c3; }
+        }
+    }
+
+    .row_status {
+        &.new {
+            td { 
+                font-weight: bold; 
+                background-color: rgba(200,200,200,0.3) !important;
+            }
+        }
+
+        &.completed { 
+            opacity: 0.5;  
+            text-decoration: line-through;
+        }
     }
 }
 
@@ -274,6 +321,7 @@
 .ls-management-table-container {
     border-color: @league-store-c2 !important;
     margin-top: 0 !important;
+    background: rgba(255, 255, 255, 1);
     th {
         border-color: @league-store-c2 !important;
         padding: 4px 8px !important;

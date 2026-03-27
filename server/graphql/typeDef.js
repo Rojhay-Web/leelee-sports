@@ -78,6 +78,8 @@ module.exports = gql`
         upsertLeagueStoreOrganization(id:String, item:JSONObj): String
         upsertLeagueStoreUser(id:String, item:JSONObj): String
 
+        updateQuoteStatus(id:String!, status: String!): Boolean
+
         deleteLeagueStoreFeatureItem(id: String!, type: String!, photoSetId: String):Boolean
     }
 
@@ -397,6 +399,7 @@ module.exports = gql`
 
         discount: LeagueStoreQuoteDiscount
         line_items: [LeagueStoreQuoteLineItem]
+        ls_user: LeagueStoreUser
     }
 
     type PagedLeagueStoreQuote {

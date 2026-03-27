@@ -20,12 +20,14 @@ import SportEditor from "./pages/sportEditor";
 import LeagueStoreManager from "./pages/leagueStoreManager";
 import ApparelStoreManager from "./pages/apparelStoreManager";
 import UserAccountManager from "./pages/accountsManager";
+import QuoteManager from "./pages/quoteManager";
 
 export const toolboxLeagueStoreComponents: AdminPathType[] = [
     { title: "League Sports", scope:"", icon:"sports", path:"league_sports", element: SportEditor },
     { title: "League Store Manager", scope:"", icon:"warehouse", path:"league_store", element: LeagueStoreManager },
     { title: "Apparel Store Manager", scope:"", icon:"apparel", path:"apparel_store", element: ApparelStoreManager },
     { title: "User Accounts", scope:"", icon:"crowdsource", path:"user_accounts", element: UserAccountManager },
+    { title: "Quote Manager", scope:"", icon:"note_stack", path:"quote_manager", element: QuoteManager },
 ];
 
 const basePath = '/toolbox/leaguestore';

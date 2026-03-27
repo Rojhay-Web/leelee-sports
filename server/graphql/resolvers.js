@@ -485,6 +485,17 @@ module.exports = function (localStore) {
                 return ret?.results;
             },
 
+            updateQuoteStatus: async(_obj, args, context, _info) => {
+                // Validate Active User & Roles
+                util.activeUserCheck(context);
+                util.validateGQLParams(["status", "id"], args);
+
+                let ret = await ls_db.purchaseOrder.updateStatus(args.id, args.status);
+                util.checkGQLResults(ret);
+
+                return ret?.results;
+            },
+
             // Delete League Store Item(s)
             deleteLeagueStoreFeatureItem: async(_obj, args, context, _info) => {
                 // Validate Active User & Roles

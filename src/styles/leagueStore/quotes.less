@@ -93,10 +93,12 @@
                 .usrmgt_cell {
                     display: flex;
                     &.ctr_cell { justify-content: center; }
-                    &.capitalize { text-transform: uppercase; font-weight: bold; }
+                    &.capitalize { text-transform: uppercase; }
 
                     &.cell_status {
                         &.new { color: rgba(0,150,0,1); }
+                        &.po_submitted { color: @league-store-c2; }
+                        &.completed { color: @league-store-c3; }
                     }
                 }
 
@@ -120,6 +122,17 @@
                     &:hover { .league-store-c1(background, 0.7); }
 
                     &+.update-user-btn { margin-left: 1rem; }
+                }
+            }
+
+            &.row_status {
+                &.new {
+                    td { font-weight: bold; }
+                }
+
+                &.completed { 
+                    opacity: 0.5; filter: grayscale(100%); 
+                    text-decoration: line-through;
                 }
             }
 

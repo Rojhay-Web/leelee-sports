@@ -75,7 +75,7 @@ export type TableManagementDetailsFieldsType<P> = {
     title_vert_set?:boolean;
     overflow_field_content?:boolean;
     conditional_fields?:(keyof P)[];
-    nested: string[];
+    nested?: string[];
 }
 
 export type TableManagementModalRowType<P> = { 

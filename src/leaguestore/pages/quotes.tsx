@@ -131,10 +131,17 @@ export default function Quotes(){
             }
         },
         { 
-            id:"status_date", enableSorting: false,
-            header: 'Update Date', accessorKey: 'status_date', 
+            id:"creation_date", enableSorting: false,
+            header: 'Created Date', accessorKey: 'creation_date', 
             cell: ({ row }: { row: any }) => { 
                 return <div className="usrmgt_cell ctr_cell">{formatDateStr(row.original.creation_date, `MM-dd-yyyy hh:mm aaa`)}</div>
+            }
+        },
+        { 
+            id:"status_date", enableSorting: false,
+            header: 'Last Update Date', accessorKey: 'status_date', 
+            cell: ({ row }: { row: any }) => { 
+                return <div className="usrmgt_cell ctr_cell">{formatDateStr(row.original.status_date, `MMM dd, yyyy`)}</div>
             }
         },
         { 
@@ -197,7 +204,7 @@ export default function Quotes(){
                 setPage(1);
             }
         }
-    },[selectedQuote])
+    },[selectedQuote]);
 
     useEffect(() => { 
         if(pageRef?.current) {
@@ -267,7 +274,9 @@ export default function Quotes(){
                             <tbody>
                                 {table.getRowModel().rows.map((row, idx) => {
                                     return (
-                                        <tr key={row.id} style={{ zIndex: table.getRowModel().rows.length - idx }}>
+                                        <tr key={row.id} style={{ zIndex: table.getRowModel().rows.length - idx }}
+                                            className={`row_status ${row?.original?.status?.toLowerCase() ?? ''}`}
+                                        >
                                             {row.getVisibleCells().map((cell) => {
                                                 return (
                                                     <td key={cell.id}
